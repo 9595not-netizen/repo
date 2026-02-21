@@ -1,0 +1,1308 @@
+/* ============================================================
+   NOTMOBILE - Global Design System
+   Version: 2.0 (Plan B - Full Design System Overhaul)
+   
+   วิธีใช้: import ไฟล์นี้ใน main.tsx หรือ App.tsx
+   import './globals.css'
+   ============================================================ */
+
+/* ─────────────────────────────────────────
+   1. FONT IMPORT
+───────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap');
+
+/* ─────────────────────────────────────────
+   2. CSS VARIABLES (DESIGN TOKENS)
+───────────────────────────────────────── */
+:root {
+  /* === COLORS === */
+  --color-primary:     #1E40AF;
+  --color-gold:        #D4AF37;
+  --color-gold-light:  rgba(212, 175, 55, 0.15);
+  --color-success:     #10B981;
+  --color-warning:      #F59E0B;
+  --color-error:       #EF4444;
+  --color-info:        #3B82F6;
+
+  /* === GRADIENT TITLE (เหมือน Dashboard) === */
+  --gradient-title: linear-gradient(90deg, #EC4899 0%, #F59E0B 40%, #10B981 100%);
+
+  /* === BACKGROUND === */
+  --bg-page:     #F3F4F6;
+  --bg-card:     #FFFFFF;
+  --bg-glass:    rgba(255, 255, 255, 0.85);
+
+  /* === TEXT === */
+  --text-primary:   #1E40AF;  /* Light Mode: น้ำเงินเข้ม */
+  --text-secondary: #6B7280;
+  --text-dark:      #111827;
+  --text-white:     #FFFFFF;
+  --text-light-mode: #1E40AF;  /* Light Mode: น้ำเงินเข้ม */
+  --text-dark-mode:  #F3F4F6;  /* Dark Mode: ขาวอมเทา */
+
+  /* ─────────────────────────────────────────
+     PAGE HEADER STANDARD (สำคัญมาก)
+     ทุกหน้าต้องใช้ค่านี้เท่ากันหมด
+     เทียบจากหน้า Dashboard เป็นหลัก
+  ───────────────────────────────────────── */
+  --page-header-pt:         40px;   /* padding-top จาก header bar */
+  --page-header-pb:         32px;   /* padding-bottom ก่อน card แรก */
+  --page-title-size:        2rem;   /* 32px */
+  --page-title-weight:      800;
+  --page-subtitle-size:     0.875rem; /* 14px */
+  --page-subtitle-color:    #6B7280;
+  --page-subtitle-mt:       6px;
+  --page-divider-mt:        12px;
+  --page-divider-mb:        0px;
+
+  /* ─────────────────────────────────────────
+     CONTENT CARD STANDARD
+     ทุก card ต้องมี max-width เดียวกัน
+  ───────────────────────────────────────── */
+  --card-max-width:     1400px;
+  --card-width:         calc(100% - 32px); /* margin 16px แต่ละข้าง */
+  --card-padding:       24px;
+  --card-radius:        16px;
+  --card-border:        1.5px solid var(--color-gold);
+  --card-shadow:        0 2px 12px rgba(212, 175, 55, 0.08);
+  --card-bg:            #FFFFFF;
+
+  /* ─────────────────────────────────────────
+     PRODUCT CARD STANDARD (คลังสินค้า)
+  ───────────────────────────────────────── */
+  --product-card-img-h:     160px;  /* ลดจากเดิมที่ใหญ่เกิน */
+  --product-card-radius:    12px;
+  --product-card-padding:   12px;
+
+  /* ─────────────────────────────────────────
+     LAYOUT
+  ───────────────────────────────────────── */
+  --header-h:      64px;
+  --bottomnav-h:   64px;
+  --gap-sm:        8px;
+  --gap-md:        16px;
+  --gap-lg:        24px;
+}
+
+/* Dark Mode - ใช้ .dark จาก ThemeProvider */
+.dark {
+  --bg-page:    #111827;
+  --bg-card:    #1F2937;
+  --bg-glass:   rgba(31, 41, 55, 0.85);
+  --text-primary:  #F3F4F6;
+  --text-dark:     #F3F4F6;
+  --text-light-mode: #1E40AF;
+  --text-dark-mode:  #F3F4F6;
+  --color-gold:    #FBBF24;
+  --card-border:   1.5px solid rgba(251, 191, 36, 0.4);
+}
+
+/* ─────────────────────────────────────────
+   3. BASE RESET
+───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  font-family: 'Prompt', sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-dark);
+  overflow-x: hidden;
+}
+
+/* Typography Colors - ใช้สีตามโหมด (class อยู่ที่ html จาก ThemeProvider) */
+html:not(.dark) body {
+  color: var(--text-light-mode);
+}
+
+html.dark body {
+  color: var(--text-dark-mode);
+}
+
+/* ─────────────────────────────────────────
+   4. APP LAYOUT WRAPPER
+───────────────────────────────────────── */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-main {
+  flex: 1;
+  padding-top: var(--header-h);
+  padding-bottom: var(--bottomnav-h);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ─────────────────────────────────────────
+   5. PAGE HEADER — มาตรฐานทุกหน้า
+   
+   ใช้ทุกหน้า: Dashboard, คลัง, เพิ่ม,
+   ขาย, รายงาน, ตั้งค่า
+───────────────────────────────────────── */
+.page-header {
+  width: 100%;
+  text-align: center;
+  padding-top: var(--page-header-pt);       /* 40px */
+  padding-bottom: var(--page-header-pb);    /* 32px */
+}
+
+.page-title {
+  display: inline-block;
+  font-size: var(--page-title-size);        /* 32px */
+  font-weight: var(--page-title-weight);    /* 800 */
+  line-height: 1.2;
+  font-family: 'Prompt', sans-serif;
+  
+  /* Gradient เหมือน Dashboard */
+  background: var(--gradient-title);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-subtitle {
+  display: block;
+  font-size: var(--page-subtitle-size);     /* 14px */
+  font-weight: 400;
+  color: var(--page-subtitle-color);        /* #6B7280 */
+  margin-top: var(--page-subtitle-mt);      /* 6px */
+  line-height: 1.4;
+}
+
+.page-title-divider {
+  display: block;
+  width: 60px;
+  height: 2px;
+  margin-top: var(--page-divider-mt);      /* 12px */
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: var(--page-divider-mb);   /* 0px */
+  background: var(--gradient-title);
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────
+   6. CONTENT WRAPPER — มาตรฐานทุกหน้า
+   
+   ครอบทุก card ในหน้า
+   ทำให้ margin และ max-width เท่ากันทุกหน้า
+───────────────────────────────────────── */
+.page-content {
+  width: 100%;
+  max-width: var(--card-max-width);         /* 1400px */
+  margin: 0 auto;
+  padding: 0 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);                       /* 24px */
+}
+
+/* ─────────────────────────────────────────
+   7. GOLD CARD — มาตรฐานทุก Card
+───────────────────────────────────────── */
+.gold-card {
+  width: 100%;
+  background: var(--card-bg);
+  border: var(--card-border);              /* 1.5px solid gold */
+  border-radius: var(--card-radius);       /* 16px */
+  padding: var(--card-padding);            /* 24px */
+  box-shadow: var(--card-shadow);
+}
+
+.gold-card-title {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Prompt', sans-serif;
+  color: var(--text-primary);
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+  margin-bottom: 20px;
+}
+
+/* Dark mode: ใช้สีขาวอมเทา */
+.dark .gold-card-title {
+  color: var(--text-dark-mode);
+}
+
+/* ─────────────────────────────────────────
+   8. SUMMARY CARDS (Dashboard / Reports)
+   Responsive Grid - Scale และ Rearrange อัตโนมัติ
+───────────────────────────────────────── */
+.summary-grid {
+  display: grid;
+  gap: var(--gap-md);
+  width: 100%;
+
+  /* Mobile: 2 คอลัมน์ */
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Tablet: 2 คอลัมน์ (เหมือนเดิม แต่ card ใหญ่ขึ้น) */
+@media (min-width: 768px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--gap-lg);
+  }
+}
+
+/* Desktop: 4 คอลัมน์ */
+@media (min-width: 1024px) {
+  .summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--gap-lg);
+  }
+}
+
+/* Large Desktop: 4 คอลัมน์ แต่ card ใหญ่ขึ้น */
+@media (min-width: 1400px) {
+  .summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+}
+
+.summary-card {
+  background: var(--card-bg);
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 90px;
+  transition: box-shadow 0.2s;
+}
+
+.summary-card:hover {
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.15);
+}
+
+.summary-card-info {}
+.summary-card-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+.summary-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Prompt', sans-serif;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+/* Dark mode: ใช้สีขาวอมเทา */
+.dark .summary-card-value {
+  color: var(--text-dark-mode);
+}
+.summary-card-unit {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.summary-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.5rem;
+}
+
+/* ─────────────────────────────────────────
+   9. PRODUCT GRID (คลังสินค้า)
+   Responsive Grid - Scale และ Rearrange อัตโนมัติ
+───────────────────────────────────────── */
+.product-grid {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+
+  /* Mobile: 1 คอลัมน์ */
+  grid-template-columns: 1fr;
+}
+
+/* Small Tablet: 2 คอลัมน์ */
+@media (min-width: 600px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Tablet: 2 คอลัมน์ (ใหญ่ขึ้น) */
+@media (min-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Laptop: 3 คอลัมน์ */
+@media (min-width: 960px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Desktop: 4 คอลัมน์ */
+@media (min-width: 1280px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Large Desktop: 5 คอลัมน์ */
+@media (min-width: 1600px) {
+  .product-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 28px;
+  }
+}
+
+/* ─────────────────────────────────────────
+   10. PRODUCT CARD (คลังสินค้า)
+───────────────────────────────────────── */
+.product-card {
+  background: var(--card-bg);
+  border: 1px solid #E5E7EB;
+  border-radius: var(--product-card-radius);   /* 12px */
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(30, 64, 175, 0.12);
+  border-color: var(--color-gold);
+}
+
+/* รูปสินค้า — ลดขนาดลงจากเดิม */
+.product-card-image {
+  position: relative;
+  width: 100%;
+  height: var(--product-card-img-h);           /* 160px */
+  background: #F8F9FA;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.product-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+/* Badge สถานะ */
+.product-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  color: white;
+  font-family: 'Prompt', sans-serif;
+}
+
+.badge-in-stock  { background: #10B981; }
+.badge-reserved  { background: #F59E0B; }
+.badge-sold      { background: #6B7280; }
+.badge-service   { background: #EF4444; }
+
+/* shop_code + IMEI overlay */
+.product-card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 8px;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+/* ข้อมูลสินค้า */
+.product-card-body {
+  padding: var(--product-card-padding);        /* 12px */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-card-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: 'Prompt', sans-serif;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+/* Dark mode: ใช้สีขาวอมเทา */
+.dark .product-card-name {
+  color: var(--text-dark-mode);
+}
+
+.product-card-spec {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.product-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F3F4F6;
+}
+
+.product-card-type {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--color-info);
+  color: var(--color-info);
+  font-weight: 500;
+}
+
+.product-card-cost {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.product-card-price {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Prompt', sans-serif;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* Dark mode: ใช้สีขาวอมเทา */
+.dark .product-card-price {
+  color: var(--text-dark-mode);
+}
+
+/* ─────────────────────────────────────────
+   11. FORM CARD (เพิ่มสินค้า / ขายสินค้า)
+───────────────────────────────────────── */
+.form-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .form-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+.form-label span.required {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.875rem;
+  color: var(--text-dark);
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  appearance: none;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9CA3AF;
+  font-size: 0.8125rem;
+}
+
+/* IMEI input with scan button */
+.imei-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.imei-input-wrapper .form-input {
+  padding-right: 48px;
+}
+.imei-scan-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+.imei-scan-btn:hover { color: var(--color-primary); }
+
+/* ─────────────────────────────────────────
+   12. IMAGE UPLOADER (เพิ่มสินค้า)
+   ลดขนาดจากเดิมที่ใหญ่เกินไป
+───────────────────────────────────────── */
+.image-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);  /* 4 ช่องเล็กๆ */
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .image-upload-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.image-upload-slot {
+  aspect-ratio: 1;                         /* สี่เหลี่ยมจัตุรัส */
+  max-height: 100px;                       /* สูงสุด 100px */
+  border: 1.5px dashed #D1D5DB;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #F9FAFB;
+  transition: border-color 0.2s, background 0.2s;
+  overflow: hidden;
+  position: relative;
+}
+
+.image-upload-slot:hover {
+  border-color: var(--color-gold);
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.image-upload-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-upload-slot .upload-icon {
+  font-size: 1.25rem;
+  color: #9CA3AF;
+  margin-bottom: 4px;
+}
+
+.image-upload-slot .upload-label {
+  font-size: 0.65rem;
+  color: #9CA3AF;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ─────────────────────────────────────────
+   13. FILTER BAR (คลังสินค้า)
+───────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 120px; /* mobile-friendly: 200px on larger screens */
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-search-icon {
+  position: absolute;
+  left: 12px;
+  color: #9CA3AF;
+  pointer-events: none;
+}
+
+.filter-search .form-input {
+  padding-left: 36px;
+}
+
+.filter-select-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-select {
+  padding: 9px 32px 9px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.8125rem;
+  color: var(--text-dark);
+  background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 80px; /* mobile-friendly: 100px on larger screens */
+}
+
+@media (min-width: 480px) {
+  .filter-search { min-width: 200px; }
+  .filter-select { min-width: 100px; }
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* ─────────────────────────────────────────
+   14. QUICK ACTION BUTTONS (Dashboard)
+   Responsive Grid - Scale และ Rearrange อัตโนมัติ
+───────────────────────────────────────── */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gap-md);
+  width: 100%;
+}
+
+/* Tablet: 4 คอลัมน์ */
+@media (min-width: 768px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--gap-lg);
+  }
+}
+
+/* Desktop: 4 คอลัมน์ (ใหญ่ขึ้น) */
+@media (min-width: 1024px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+}
+
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-family: 'Prompt', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 140px;
+}
+
+.quick-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.quick-action-btn .btn-icon {
+  font-size: 2rem;
+}
+
+.quick-action-btn .btn-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: white;
+  opacity: 0.95;
+  margin-top: -4px;
+}
+
+/* ปุ่มกดหลายสี: ชมพู น้ำเงิน เหลือง ม่วง ส้ม เขียว */
+.btn-pink   { 
+  background: linear-gradient(135deg, #EC4899, #BE185D); 
+  color: white;
+}
+.btn-pink:hover {
+  background: linear-gradient(135deg, #DB2777, #9F1239);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+}
+
+.btn-blue   { 
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8); 
+  color: white;
+}
+.btn-blue:hover {
+  background: linear-gradient(135deg, #2563EB, #1E40AF);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+.btn-yellow { 
+  background: linear-gradient(135deg, #F59E0B, #D97706); 
+  color: white;
+}
+.btn-yellow:hover {
+  background: linear-gradient(135deg, #D97706, #B45309);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+}
+
+.btn-purple { 
+  background: linear-gradient(135deg, #A855F7, #9333EA); 
+  color: white;
+}
+.btn-purple:hover {
+  background: linear-gradient(135deg, #9333EA, #7E22CE);
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.4);
+}
+
+.btn-orange { 
+  background: linear-gradient(135deg, #F97316, #EA580C); 
+  color: white;
+}
+.btn-orange:hover {
+  background: linear-gradient(135deg, #EA580C, #C2410C);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+}
+
+.btn-green  { 
+  background: linear-gradient(135deg, #10B981, #059669); 
+  color: white;
+}
+.btn-green:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* ─────────────────────────────────────────
+   15. TABS (ตั้งค่า)
+───────────────────────────────────────── */
+.tabs-container {
+  width: 100%;
+  border-bottom: 2px solid #E5E7EB;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs-list {
+  display: flex;
+  gap: 0;
+  min-width: max-content;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border: none;
+  background: none;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--color-primary);
+}
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-gold);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────
+   16. TABLE STANDARD (ตั้งค่า)
+───────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  background: #F9FAFB;
+  border-bottom: 2px solid #E5E7EB;
+}
+
+.data-table th {
+  padding: 12px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: var(--text-dark);
+  border-bottom: 1px solid #F3F4F6;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+  background: #FAFAFA;
+}
+
+/* ─────────────────────────────────────────
+   17. STATUS BADGE
+───────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-active   { background: #D1FAE5; color: #065F46; }
+.status-inactive { background: #F3F4F6; color: #6B7280; }
+.status-admin    { background: #DBEAFE; color: #1E40AF; }
+.status-staff    { background: #F3F4F6; color: #374151; }
+
+/* ─────────────────────────────────────────
+   18. DATE RANGE SELECTOR (รายงาน)
+───────────────────────────────────────── */
+.date-range-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.date-pill {
+  padding: 8px 20px;
+  border-radius: 25px;
+  border: 1.5px solid #D1D5DB;
+  background: white;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.date-pill:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.date-pill.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.date-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .date-range-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─────────────────────────────────────────
+   19. BOTTOM NAVIGATION
+───────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottomnav-h);
+  background: white;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 100;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #9CA3AF;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 500;
+  transition: color 0.2s;
+  min-height: 100%;
+}
+
+.nav-btn.active {
+  color: var(--color-primary);
+}
+
+.nav-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ─────────────────────────────────────────
+   20. HEADER BAR
+───────────────────────────────────────── */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-h);
+  background: white;
+  border-bottom: 1.5px solid rgba(212, 175, 55, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.header-logo {
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.375rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #EC4899, #F59E0B, #10B981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-decoration: none;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-datetime {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+@media (max-width: 480px) {
+  .header-datetime { display: none; }
+}
+
+/* ─────────────────────────────────────────
+   21. BUTTONS - ปรับปรุงให้ใช้สีหลากหลาย
+───────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-height: 42px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+.btn-primary:hover {
+  background: #1D4ED8;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+.btn-success {
+  background: var(--color-success);
+  color: white;
+}
+.btn-success:hover {
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-gold {
+  background: var(--color-gold);
+  color: white;
+}
+.btn-gold:hover {
+  background: #B8962E;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.btn-outline {
+  background: white;
+  border: 1.5px solid #D1D5DB;
+  color: var(--text-dark);
+}
+.btn-outline:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(30, 64, 175, 0.05);
+}
+
+.btn-danger {
+  background: var(--color-error);
+  color: white;
+}
+.btn-danger:hover {
+  background: #DC2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-full { width: 100%; }
+
+.btn-icon-only {
+  padding: 8px;
+  min-height: unset;
+}
+
+/* ปุ่มสีเพิ่มเติมสำหรับใช้ทั่วแอพ */
+.btn-pink-solid {
+  background: #EC4899;
+  color: white;
+}
+.btn-pink-solid:hover {
+  background: #DB2777;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.btn-blue-solid {
+  background: #3B82F6;
+  color: white;
+}
+.btn-blue-solid:hover {
+  background: #2563EB;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-yellow-solid {
+  background: #F59E0B;
+  color: white;
+}
+.btn-yellow-solid:hover {
+  background: #D97706;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-purple-solid {
+  background: #A855F7;
+  color: white;
+}
+.btn-purple-solid:hover {
+  background: #9333EA;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+}
+
+.btn-orange-solid {
+  background: #F97316;
+  color: white;
+}
+.btn-orange-solid:hover {
+  background: #EA580C;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.btn-green-solid {
+  background: #10B981;
+  color: white;
+}
+.btn-green-solid:hover {
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* ─────────────────────────────────────────
+   22. MODAL
+───────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: 'Prompt', sans-serif;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+/* Dark mode: ใช้สีขาวอมเทา */
+.dark .modal-title {
+  color: var(--text-dark-mode);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+/* ─────────────────────────────────────────
+   23. RESULT COUNT TEXT
+───────────────────────────────────────── */
+.result-count {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+.result-count strong {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────
+   24. UTILITY CLASSES
+───────────────────────────────────────── */
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+.text-gold   { color: var(--color-gold) !important; }
+.text-primary { 
+  color: var(--text-primary) !important; 
+  font-family: 'Prompt', sans-serif;
+}
+.text-success { color: var(--color-success) !important; }
+.text-error   { color: var(--color-error) !important; }
+.text-muted   { color: var(--text-secondary) !important; }
+
+/* Dark mode: ใช้สีขาวอมเทา */
+.dark .text-primary {
+  color: var(--text-dark-mode) !important;
+}
+
+.font-bold    { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Prompt', sans-serif;
+  color: var(--text-primary);
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: var(--text-dark-mode);
+}
+
+p, span, div, label {
+  font-family: 'Prompt', sans-serif;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: #E5E7EB;
+  margin: 16px 0;
+}
+
+.divider-gold {
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}

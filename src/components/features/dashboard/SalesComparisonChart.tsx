@@ -79,10 +79,10 @@ export const SalesComparisonChart = memo(function SalesComparisonChart() {
           const quarterEnd = new Date(currentYear, (q + 1) * 3, 0, 23, 59, 59);
 
           // Fetch products for this quarter
-          // @ts-ignore - Type inference issue with Supabase types
+          // @ts-expect-error - Type inference issue with Supabase types
           const { data: products, error } = await supabase
             .from('products')
-            .select('status, type, selling_price, sold_at, created_at')
+            .select('status, type, selling_price, sold_at, created_at, payment_method')
             .gte('created_at', quarterStart.toISOString())
             .lte('created_at', quarterEnd.toISOString());
 
@@ -105,12 +105,14 @@ export const SalesComparisonChart = memo(function SalesComparisonChart() {
           };
 
           if (products) {
-            products.forEach((product: { status: string; type: string; selling_price?: number }) => {
+            products.forEach((product: { status: string; type: string; selling_price?: number; payment_method?: string | null }) => {
               if (product.status === 'in_stock') row.in_stock += 1;
               if (product.status === 'reserved') row.reserved += 1;
               if (product.status === 'sold') {
                 row.sold += 1;
-                row.revenue += product.selling_price || 0;
+                if (product.payment_method !== 'ผ่อนชำระ') {
+                  row.revenue += product.selling_price || 0;
+                }
               }
               if (product.status === 'service') row.service += 1;
               if (product.type === 'มือ 1') row.hand1 += 1;

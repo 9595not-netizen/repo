@@ -16,7 +16,7 @@ export function ProductFormModal({ open, onOpenChange, productId, onSuccess }: P
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="max-w-4xl max-h-[90vh] overflow-y-auto"
+                className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
                 onPointerDownOutside={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.closest('[role="listbox"]') || target.closest('[data-radix-select-viewport]')) {

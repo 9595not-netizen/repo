@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { GoldCard } from '@/components/ui/gold-card';
 import { supabase } from '@/lib/supabase';
+import { computeCashSalesSummary } from './reportFilterUtils';
 import { ShoppingBag, TrendingUp, DollarSign, Percent, Loader2 } from 'lucide-react';
 
 interface ReportsSummaryCardsProps {
@@ -28,21 +29,24 @@ export function ReportsSummaryCards({ dateRange }: ReportsSummaryCardsProps) {
         const fetchSalesSummary = async () => {
             setSummary((prev) => ({ ...prev, loading: true }));
             try {
+                const start = new Date(dateRange.start);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(dateRange.end);
+                end.setHours(23, 59, 59, 999);
+
                 const { data: sales, error } = await supabase
                     .from('product_details')
-                    .select('id, cost_price, selling_price, sold_at')
+                    .select('id, cost_price, selling_price, sold_at, payment_method')
                     .eq('status', 'sold')
-                    .gte('sold_at', dateRange.start.toISOString())
-                    .lte('sold_at', dateRange.end.toISOString());
+                    .gte('sold_at', start.toISOString())
+                    .lte('sold_at', end.toISOString());
 
                 if (error) throw error;
 
                 if (sales && sales.length > 0) {
-                    const itemsSold = sales.length;
-                    const totalRevenue = sales.reduce((sum, s) => sum + (s.selling_price || 0), 0);
-                    const totalCost = sales.reduce((sum, s) => sum + (s.cost_price || 0), 0);
-                    const totalProfit = totalRevenue - totalCost;
-                    const profitRate = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+                    const { itemsSold, totalRevenue, totalProfit, profitRate } = computeCashSalesSummary(
+                        sales as Array<{ cost_price?: number; selling_price?: number; payment_method?: string | null }>
+                    );
 
                     setSummary({
                         itemsSold,
@@ -109,7 +113,7 @@ export function ReportsSummaryCards({ dateRange }: ReportsSummaryCardsProps) {
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {cards.map((card, idx) => {
                 const Icon = card.icon;
                 return (

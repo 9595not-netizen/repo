@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -22,31 +21,7 @@ import { useStaffList } from '@/hooks/useStaffList';
 import { supabaseHelpers } from '@/lib/supabase-helpers';
 import { getErrorMessage } from '@/lib/error-handler';
 import type { Brand, Model, ModelVariant, Color, DeviceType, Product, ProductWithSource, UsedProductDetail } from '@/types/common.types';
-
-// Define schema
-const productSchema = z.object({
-    shop_code: z.string().min(1, 'กรุณาระบุรหัสร้าน'),
-    imei: z.string().regex(/^\d{15}$/, 'IMEI ต้องเป็นตัวเลข 15 หลัก'),
-    brand_id: z.string().min(1, 'กรุณาเลือกยี่ห้อ'),
-    model_id: z.string().min(1, 'กรุณาเลือกรุ่น'),
-    model_variant_id: z.string().min(1, 'กรุณาเลือกความจุ'),
-    color_id: z.string().min(1, 'กรุณาเลือกสี'),
-    device_type_id: z.string().min(1, 'กรุณาเลือกประเภทอุปกรณ์'),
-    type: z.enum(['มือ 1', 'มือ 2']),
-    cost_price: z.coerce.number().min(1, 'ราคาทุนต้องมากกว่า 0'),
-    received_date: z.string().optional(),
-    source: z.string().optional(), // ที่มา
-    created_by_user_id: z.string().optional(), // พนักงานบันทึก
-    condition_grade: z.string().optional(),
-    battery_health: z.coerce.number().optional(),
-    has_box: z.boolean().default(false),
-    has_charger: z.boolean().default(false),
-    has_cable: z.boolean().default(false),
-    has_headphone: z.boolean().default(false),
-    condition_note: z.string().optional(),
-});
-
-type ProductFormValues = z.infer<typeof productSchema>;
+import { productSchema, type ProductFormValues } from './productFormSchema';
 
 interface ProductFormProps {
     /** โหมด Modal: ส่ง productId ตรงๆ แทน URL */
@@ -101,6 +76,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
     const watchBrand = form.watch('brand_id');
     const watchModel = form.watch('model_id');
     const watchType = form.watch('type');
+    const watchShopCode = form.watch('shop_code');
 
     // โหลดสินค้าเมื่อแก้ไข (product_id จาก URL หรือ Modal)
     useEffect(() => {
@@ -154,7 +130,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                 form.setValue('color_id', p.color_id ?? '');
                 form.setValue('device_type_id', p.device_type_id ?? '');
                 form.setValue('type', (p.type as 'มือ 1' | 'มือ 2') ?? 'มือ 1');
-                form.setValue('cost_price', Number(p.cost_price) ?? 0);
+                form.setValue('cost_price', Number(p.cost_price ?? 0));
                 form.setValue('received_date', p.received_date ? String(p.received_date).split('T')[0] : '');
                 form.setValue('source', p.source ?? '');
                 form.setValue('created_by_user_id', p.created_by ?? undefined);
@@ -187,6 +163,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
         };
         loadProduct();
         return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run when productId changes only
     }, [productId]);
 
     // Fetch Initial Data
@@ -214,12 +191,11 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
 
     // Check Shop Code uniqueness (เมื่อแก้ไข ไม่นับตัวเอง)
     useEffect(() => {
-        const shopCode = form.watch('shop_code');
-        if (!shopCode) return;
+        if (!watchShopCode) return;
         let cancelled = false;
         const checkShopCode = async () => {
             try {
-                let q = supabase.from('products').select('*', { count: 'exact', head: true }).eq('shop_code', shopCode);
+                let q = supabase.from('products').select('*', { count: 'exact', head: true }).eq('shop_code', watchShopCode);
                 if (editProductId) q = q.neq('id', editProductId);
                 const { count } = await q;
                 if (!cancelled) setShopCodeExists((count || 0) > 0);
@@ -229,7 +205,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
         };
         checkShopCode();
         return () => { cancelled = true; };
-    }, [form.watch('shop_code'), editProductId]);
+    }, [watchShopCode, editProductId]);
 
     // Fetch Models when Brand changes
     useEffect(() => {
@@ -254,6 +230,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
         } else {
             setModels([]);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run when watchBrand changes; omit form
     }, [watchBrand]);
 
     // Fetch Variants when Model changes
@@ -277,6 +254,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
         } else {
             setVariants([]);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run when watchModel changes; omit form
     }, [watchModel]);
 
 
@@ -321,7 +299,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                     }
                 }
 
-                await supabaseHelpers.updateProduct(supabase, editProductId, {
+                const { error: updateError } = await supabaseHelpers.updateProduct(supabase, editProductId, {
                     shop_code: data.shop_code,
                     imei: data.imei,
                     model_variant_id: data.model_variant_id,
@@ -333,8 +311,12 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                     updated_at: timestamp,
                 });
 
+                if (updateError) {
+                    throw updateError;
+                }
+
                 if (data.type === 'มือ 2') {
-                    await supabaseHelpers.upsertUsedDetails(supabase, {
+                    const { error: usedError } = await supabaseHelpers.upsertUsedDetails(supabase, {
                         product_id: editProductId,
                         condition_grade: (data.condition_grade as 'A' | 'B' | 'C' | 'F') || 'C',
                         battery_health: data.battery_health ?? null,
@@ -345,6 +327,10 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                         condition_note: data.condition_note || null,
                         images: imageUrls.length > 0 ? imageUrls : [],
                     });
+
+                    if (usedError) {
+                        throw usedError;
+                    }
                 }
 
                 toast({ title: "แก้ไขสินค้าสำเร็จ", description: `${data.shop_code}`, className: "bg-green-500 text-white" });

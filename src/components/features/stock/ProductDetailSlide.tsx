@@ -27,6 +27,7 @@ export function ProductDetailSlide({
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     if (isOpen && productId) {
@@ -75,6 +76,66 @@ export function ProductDetailSlide({
     };
   }, [isOpen]);
 
+  const handleChangeStatus = async (newStatus: 'in_stock' | 'reserved' | 'service') => {
+    if (!product || product.status === newStatus || updatingStatus) return;
+    setUpdatingStatus(true);
+    try {
+      const { data, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const user = data.user;
+      if (!user) {
+        throw new Error('ไม่พบข้อมูลผู้ใช้ กรุณาล็อกอินใหม่อีกครั้ง');
+      }
+
+      const prevStatus = product.status;
+      let actionType: 'reserve' | 'cancel_reserve' | 'service' | 'return';
+      let actionNote: string;
+
+      if (newStatus === 'reserved') {
+        actionType = 'reserve';
+        actionNote = 'ลูกค้าจองสินค้า';
+      } else if (newStatus === 'service') {
+        actionType = 'service';
+        actionNote = 'ส่งสินค้าเข้าซ่อม';
+      } else {
+        if (prevStatus === 'reserved') {
+          actionType = 'cancel_reserve';
+          actionNote = 'ยกเลิกการจอง สินค้ากลับมาพร้อมขาย';
+        } else if (prevStatus === 'service') {
+          actionType = 'return';
+          actionNote = 'รับสินค้ากลับจากการซ่อม กลับมาพร้อมขาย';
+        } else {
+          actionType = 'return';
+          actionNote = 'ปรับสถานะกลับเป็นพร้อมขาย';
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ status: newStatus })
+        .eq('id', product.id);
+      if (updateError) throw updateError;
+
+      const { error: logError } = await supabase.from('inventory_logs').insert({
+        product_id: product.id,
+        action_type: actionType,
+        action_by: user.id,
+        action_note: actionNote,
+      });
+
+      if (logError) {
+        console.error('Inventory log error (toggle status):', logError);
+      }
+
+      setProduct((prev) => (prev ? { ...prev, status: newStatus } : prev));
+    } catch (e) {
+      console.error('Error updating product status:', e);
+      alert('ไม่สามารถเปลี่ยนสถานะสินค้าได้ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   if (!isOpen && !isAnimating) return null;
 
   const handleEdit = () => {
@@ -111,12 +172,12 @@ export function ProductDetailSlide({
 
       {/* Centered Modal - max-w-2xl พอดีกับจอ */}
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 pointer-events-none ${
+        className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 pointer-events-none ${
           isOpen ? 'opacity-100' : 'opacity-0'
         }`}
       >
         <div
-          className={`pointer-events-auto w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-card/95 backdrop-blur-xl border-2 border-gold/30 transition-all duration-300 ${
+          className={`pointer-events-auto w-full max-w-2xl max-h-[calc(100vh-80px)] flex flex-col rounded-2xl shadow-2xl bg-card/95 backdrop-blur-xl border-2 border-gold/30 transition-all duration-300 ${
             isOpen ? 'scale-100' : 'scale-95'
           }`}
         >
@@ -135,7 +196,7 @@ export function ProductDetailSlide({
           </div>
 
           {/* Content - Scrollable */}
-          <div className="overflow-y-auto max-h-[calc(85vh-140px)] p-4">
+          <div className="flex-1 overflow-y-auto p-4">
             {loading ? (
               <ProductDetailSkeleton />
             ) : product ? (
@@ -147,27 +208,63 @@ export function ProductDetailSlide({
             )}
           </div>
 
-          {/* Footer - Sticky (เมื่อสินค้ายังขายไม่ได้) */}
-          {product && product.status === 'in_stock' && (
-            <div className="bg-card/80 backdrop-blur-sm border-t border-gold/30 p-4 flex gap-3">
-              <Button onClick={handleSell} className="btn btn-blue flex-1">
-                <ShoppingCart size={16} className="mr-2" />
-                ขาย
-              </Button>
-              <Button
-                onClick={handleEdit}
-                variant="outline"
-                className="flex-1 border-gold/30"
-              >
-                <Edit size={16} className="mr-2" />
-                แก้ไข
-              </Button>
-              <Button
-                onClick={handleDelete}
-                className="btn bg-red-500 text-white hover:bg-red-600"
-              >
-                <Trash2 size={16} />
-              </Button>
+          {/* Footer - Sticky: จัดการสถานะ + ปุ่มหลัก */}
+          {product && (
+            <div className="bg-card/80 backdrop-blur-sm border-t border-gold/30 p-4 pb-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between relative z-[101]">
+              {/* Status controls */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={updatingStatus || product.status === 'in_stock'}
+                  className="border-green-500/40 text-green-600 hover:bg-green-50"
+                  onClick={() => handleChangeStatus('in_stock')}
+                >
+                  พร้อมขาย
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={updatingStatus || product.status === 'reserved'}
+                  className="border-yellow-500/40 text-yellow-600 hover:bg-yellow-50"
+                  onClick={() => handleChangeStatus('reserved')}
+                >
+                  จอง
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={updatingStatus || product.status === 'service'}
+                  className="border-red-500/40 text-red-600 hover:bg-red-50"
+                  onClick={() => handleChangeStatus('service')}
+                >
+                  ส่งซ่อม
+                </Button>
+              </div>
+
+              {/* Main actions */}
+              <div className="flex flex-1 md:flex-none gap-3 justify-end">
+                {product.status === 'in_stock' && (
+                  <Button onClick={handleSell} className="btn btn-blue flex-1 md:flex-none">
+                    <ShoppingCart size={16} className="mr-2" />
+                    ขาย
+                  </Button>
+                )}
+                <Button
+                  onClick={handleEdit}
+                  variant="outline"
+                  className="flex-1 md:flex-none border-gold/30"
+                >
+                  <Edit size={16} className="mr-2" />
+                  แก้ไข
+                </Button>
+                <Button
+                  onClick={handleDelete}
+                  className="btn bg-red-500 text-white hover:bg-red-600 flex-none"
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
             </div>
           )}
         </div>

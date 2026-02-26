@@ -33,7 +33,9 @@ export function IMEIScanner({ open, onClose, onScan }: IMEIScannerProps) {
         if (instance?.isScanning) {
           try {
             await instance.stop();
-          } catch (_) {}
+          } catch (_) {
+            // ignore stop camera errors
+          }
         }
         qrRef.current = null;
         setScanning(false);
@@ -178,7 +180,9 @@ export function IMEIScanner({ open, onClose, onScan }: IMEIScannerProps) {
     if (instance?.isScanning) {
       try {
         await instance.stop();
-      } catch (_) {}
+      } catch (_) {
+        // ignore stop camera errors
+      }
     }
     qrRef.current = null;
     setScanning(false);

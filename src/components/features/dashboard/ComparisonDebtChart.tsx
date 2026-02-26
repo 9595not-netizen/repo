@@ -86,10 +86,10 @@ export const ComparisonDebtChart = memo(function ComparisonDebtChart() {
         }
 
         // Fetch products data
-        // @ts-ignore - Type inference issue with Supabase types
+        // @ts-expect-error - Type inference issue with Supabase types
         const { data: products, error } = await supabase
           .from('products')
-          .select('status, type, cost_price, selling_price, profit, sold_at, created_at')
+          .select('status, type, cost_price, selling_price, profit, sold_at, created_at, payment_method')
           .or(`status.eq.reserved,status.eq.service,status.eq.sold`)
           .gte('created_at', startDate.toISOString())
           .lte('created_at', now.toISOString());
@@ -132,9 +132,12 @@ export const ComparisonDebtChart = memo(function ComparisonDebtChart() {
             if (product.status === 'service') periodData.service += 1;
             if (product.status === 'sold') {
               periodData.sold += 1;
-              periodData.salesTrend += product.selling_price || 0;
-              periodData.cost += product.cost_price || 0;
-              periodData.profit += product.profit || 0;
+              // นับรายได้/กำไรเฉพาะขายสด (ไม่รวมผ่อนชำระ)
+              if ((product as { payment_method?: string | null }).payment_method !== 'ผ่อนชำระ') {
+                periodData.salesTrend += product.selling_price || 0;
+                periodData.cost += product.cost_price || 0;
+                periodData.profit += product.profit || 0;
+              }
             }
           });
         }

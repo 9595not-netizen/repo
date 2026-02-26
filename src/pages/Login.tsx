@@ -34,10 +34,12 @@ export default function Login() {
     const errors: { username?: string; password?: string } = {};
     let isValid = true;
 
-    if (!username.trim()) {
+    const trimmedUsername = username.trim();
+
+    if (!trimmedUsername) {
       errors.username = 'กรุณากรอกชื่อผู้ใช้';
       isValid = false;
-    } else if (username.length < 3) {
+    } else if (trimmedUsername.length < 3) {
       errors.username = 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร';
       isValid = false;
     }

@@ -111,14 +111,18 @@ export function SaleSuccessScreen({ data, onContinue }: SaleSuccessScreenProps) 
                         <div className="bg-primary/10 p-4 rounded-lg">
                             <p className="text-xs text-muted-foreground">ราคาขาย</p>
                             <p className="text-2xl font-bold text-primary">
-                                ฿{saleData.selling_price.toLocaleString('th-TH')}
+                                {saleData.payment_method === 'ผ่อนชำระ' && saleData.selling_price === 0
+                                    ? '— (ตัดสต๊อก)'
+                                    : `฿${saleData.selling_price.toLocaleString('th-TH')}`}
                             </p>
                         </div>
 
                         <div className="bg-green-500/10 border-2 border-green-500/30 p-4 rounded-lg">
                             <p className="text-xs text-muted-foreground">กำไร</p>
                             <p className="text-2xl font-bold text-green-600">
-                                ฿{saleData.profit.toLocaleString('th-TH')}
+                                {saleData.payment_method === 'ผ่อนชำระ' && saleData.selling_price === 0
+                                    ? '— (ผ่อน)'
+                                    : `฿${saleData.profit.toLocaleString('th-TH')}`}
                             </p>
                         </div>
                     </div>

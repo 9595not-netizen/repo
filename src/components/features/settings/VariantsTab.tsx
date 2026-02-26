@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GoldCard } from '@/components/ui/gold-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,7 +41,7 @@ export function VariantsTab() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const fetchData = async (isCancelled?: () => boolean) => {
+    const fetchData = useCallback(async (isCancelled?: () => boolean) => {
         setLoading(true);
         try {
             const [{ data: variantsData }, { data: modelsData }] = await Promise.all([
@@ -62,17 +62,24 @@ export function VariantsTab() {
         } finally {
             if (!isCancelled?.()) setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         let cancelled = false;
         fetchData(() => cancelled);
         return () => { cancelled = true; };
-    }, [toast]);
+    }, [fetchData]);
 
     const handleSave = async () => {
-        if (!formData.model_id || !formData.storage.trim()) {
+        const trimmedStorage = formData.storage.trim();
+
+        if (!formData.model_id || !trimmedStorage) {
             toast({ title: 'ข้อผิดพลาด', description: 'กรุณาระบุข้อมูลที่จำเป็น', variant: 'destructive' });
+            return;
+        }
+
+        if (trimmedStorage.length > 50) {
+            toast({ title: 'ข้อผิดพลาด', description: 'ความจุไม่ควรยาวเกิน 50 ตัวอักษร', variant: 'destructive' });
             return;
         }
 
@@ -81,7 +88,7 @@ export function VariantsTab() {
             if (editingId) {
                 const { error } = await supabase
                     .from('model_variants')
-                    .update({ model_id: formData.model_id, storage: formData.storage, status: formData.status })
+                    .update({ model_id: formData.model_id, storage: trimmedStorage, status: formData.status })
                     .eq('id', editingId);
 
                 if (error) throw error;
@@ -89,7 +96,7 @@ export function VariantsTab() {
             } else {
                 const { error } = await supabase
                     .from('model_variants')
-                    .insert([{ model_id: formData.model_id, storage: formData.storage, status: formData.status }]);
+                    .insert([{ model_id: formData.model_id, storage: trimmedStorage, status: formData.status }]);
 
                 if (error) throw error;
                 toast({ title: 'สำเร็จ', description: 'เพิ่มความจุเรียบร้อยแล้ว', className: 'bg-green-500 text-white' });

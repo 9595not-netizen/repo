@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GoldCard } from '@/components/ui/gold-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,7 @@ export function ModelsTab() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const fetchData = async (isCancelled?: () => boolean) => {
+    const fetchData = useCallback(async (isCancelled?: () => boolean) => {
         setLoading(true);
         try {
             const [{ data: modelsData }, { data: brandsData }] = await Promise.all([
@@ -65,13 +65,13 @@ export function ModelsTab() {
         } finally {
             if (!isCancelled?.()) setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         let cancelled = false;
         fetchData(() => cancelled);
         return () => { cancelled = true; };
-    }, [toast]);
+    }, [fetchData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -85,8 +85,15 @@ export function ModelsTab() {
     };
 
     const handleSave = async () => {
-        if (!formData.brand_id || !formData.model_name.trim()) {
+        const trimmedName = formData.model_name.trim();
+
+        if (!formData.brand_id || !trimmedName) {
             toast({ title: 'ข้อผิดพลาด', description: 'กรุณาระบุข้อมูลที่จำเป็น', variant: 'destructive' });
+            return;
+        }
+
+        if (trimmedName.length > 100) {
+            toast({ title: 'ข้อผิดพลาด', description: 'ชื่อรุ่นไม่ควรยาวเกิน 100 ตัวอักษร', variant: 'destructive' });
             return;
         }
 
@@ -109,7 +116,7 @@ export function ModelsTab() {
             if (editingId) {
                 const { error } = await supabase
                     .from('models')
-                    .update({ brand_id: formData.brand_id, model_name: formData.model_name, main_image: imageUrl, status: formData.status })
+                    .update({ brand_id: formData.brand_id, model_name: trimmedName, main_image: imageUrl, status: formData.status })
                     .eq('id', editingId);
 
                 if (error) throw error;
@@ -117,7 +124,7 @@ export function ModelsTab() {
             } else {
                 const { error } = await supabase
                     .from('models')
-                    .insert([{ brand_id: formData.brand_id, model_name: formData.model_name, main_image: imageUrl, status: formData.status }]);
+                    .insert([{ brand_id: formData.brand_id, model_name: trimmedName, main_image: imageUrl, status: formData.status }]);
 
                 if (error) throw error;
                 toast({ title: 'สำเร็จ', description: 'เพิ่มรุ่นเรียบร้อยแล้ว', className: 'bg-green-500 text-white' });

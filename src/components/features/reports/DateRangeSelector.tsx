@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/types/database.types';
+import { getDateRange, toLocalDateString } from './dateRangeUtils';
 
 type ProductDetail = Database['public']['Views']['product_details']['Row'];
 
@@ -14,69 +15,42 @@ interface DateRangeSelectorProps {
     onDateRangeChange: (range: { start: Date; end: Date }) => void;
 }
 
-// ส่งค่า YYYY-MM-DD ตาม local (ไม่ให้ toISOString เลื่อนวันจาก timezone)
-function toLocalDateString(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-}
-
 export function DateRangeSelector({ dateRange, onDateRangeChange }: DateRangeSelectorProps) {
     const [exporting, setExporting] = useState(false);
     const { toast } = useToast();
 
-    const getDateRange = (option: string) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        switch (option) {
-            case 'today':
-                return { start: today, end: today };
-            case 'this_week': {
-                const start = new Date(today);
-                start.setDate(today.getDate() - today.getDay()); // Sunday
-                const end = new Date(start);
-                end.setDate(end.getDate() + 6); // Saturday
-                return { start, end };
-            }
-            case 'this_month': {
-                const start = new Date(today.getFullYear(), today.getMonth(), 1);
-                const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                return { start, end };
-            }
-            case 'this_quarter': {
-                const quarter = Math.floor(today.getMonth() / 3);
-                const start = new Date(today.getFullYear(), quarter * 3, 1);
-                const end = new Date(today.getFullYear(), quarter * 3 + 3, 0);
-                return { start, end };
-            }
-            case 'this_year': {
-                const start = new Date(today.getFullYear(), 0, 1);
-                const end = new Date(today.getFullYear(), 11, 31);
-                return { start, end };
-            }
-            default:
-                return { start: today, end: today };
-        }
-    };
+    const MAX_REPORT_DAYS = 365;
 
     const handlePresetChange = (preset: string) => {
         const range = getDateRange(preset);
         onDateRangeChange(range);
+        const days = Math.ceil((range.end.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24));
+        if (days > MAX_REPORT_DAYS) {
+            toast({ title: 'ช่วงวันที่ยาวมาก', description: `ช่วง ${days} วัน อาจทำให้ query ช้า แนะนำไม่เกิน ${MAX_REPORT_DAYS} วัน`, variant: 'destructive', duration: 5000 });
+        }
     };
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newStart = new Date(e.target.value);
         if (newStart <= dateRange.end) {
-            onDateRangeChange({ ...dateRange, start: newStart });
+            const range = { ...dateRange, start: newStart };
+            onDateRangeChange(range);
+            const days = Math.ceil((range.end.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24));
+            if (days > MAX_REPORT_DAYS) {
+                toast({ title: 'ช่วงวันที่ยาวมาก', description: `ช่วง ${days} วัน อาจทำให้ query ช้า แนะนำไม่เกิน ${MAX_REPORT_DAYS} วัน`, variant: 'destructive', duration: 5000 });
+            }
         }
     };
 
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEnd = new Date(e.target.value);
         if (newEnd >= dateRange.start) {
-            onDateRangeChange({ ...dateRange, end: newEnd });
+            const range = { ...dateRange, end: newEnd };
+            onDateRangeChange(range);
+            const days = Math.ceil((range.end.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24));
+            if (days > MAX_REPORT_DAYS) {
+                toast({ title: 'ช่วงวันที่ยาวมาก', description: `ช่วง ${days} วัน อาจทำให้ query ช้า แนะนำไม่เกิน ${MAX_REPORT_DAYS} วัน`, variant: 'destructive', duration: 5000 });
+            }
         }
     };
 
@@ -137,8 +111,11 @@ export function DateRangeSelector({ dateRange, onDateRangeChange }: DateRangeSel
     return (
         <GoldCard className="p-6">
             <div className="space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground order-first md:order-none">
+                        เลือกช่วงเวลา
+                    </h3>
+                    <div className="flex flex-wrap gap-2 order-last md:order-none">
                         <Button
                             onClick={exportToCSV}
                             variant="outline"
@@ -153,11 +130,6 @@ export function DateRangeSelector({ dateRange, onDateRangeChange }: DateRangeSel
                             )}
                             ส่งออก CSV
                         </Button>
-                    </div>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                        เลือกช่วงเวลา
-                    </h3>
-                    <div className="flex items-center gap-2">
                         <Button
                             onClick={async () => {
                                 setExporting(true);
@@ -181,11 +153,6 @@ export function DateRangeSelector({ dateRange, onDateRangeChange }: DateRangeSel
                                     const totalRevenue = sales?.reduce((sum, s) => sum + (s.selling_price || 0), 0) || 0;
                                     const totalCost = sales?.reduce((sum, s) => sum + (s.cost_price || 0), 0) || 0;
                                     const totalProfit = totalRevenue - totalCost;
-
-                                    const printWindow = window.open('', '_blank');
-                                    if (!printWindow) {
-                                        throw new Error('ไม่สามารถเปิดหน้าต่างใหม่ได้');
-                                    }
 
                                     const htmlContent = `
                                         <!DOCTYPE html>
@@ -241,13 +208,36 @@ export function DateRangeSelector({ dateRange, onDateRangeChange }: DateRangeSel
                                         </html>
                                     `;
 
-                                    printWindow.document.write(htmlContent);
-                                    printWindow.document.close();
-                                    setTimeout(() => {
-                                        printWindow.print();
-                                        printWindow.close();
-                                        toast({ title: 'ส่งออก PDF สำเร็จ', description: 'เปิดหน้าต่างพิมพ์สำหรับบันทึก PDF', className: 'bg-green-500 text-white' });
-                                    }, 250);
+                                    // Try window.open first; fallback to hidden iframe when popup is blocked
+                                    const printWindow = window.open('', '_blank');
+                                    if (printWindow) {
+                                        printWindow.document.write(htmlContent);
+                                        printWindow.document.close();
+                                        setTimeout(() => {
+                                            printWindow.print();
+                                            printWindow.close();
+                                            toast({ title: 'ส่งออก PDF สำเร็จ', description: 'เปิดหน้าต่างพิมพ์สำหรับบันทึก PDF', className: 'bg-green-500 text-white' });
+                                        }, 250);
+                                    } else {
+                                        // Popup blocked: use hidden iframe fallback
+                                        const iframe = document.createElement('iframe');
+                                        iframe.style.cssText = 'position:absolute;width:0;height:0;border:none;visibility:hidden';
+                                        document.body.appendChild(iframe);
+                                        const doc = iframe.contentWindow?.document;
+                                        if (!doc) {
+                                            document.body.removeChild(iframe);
+                                            toast({ title: 'ไม่สามารถพิมพ์ได้', description: 'เบราว์เซอร์อาจบล็อก Pop-up กรุณาอนุญาต Pop-up สำหรับไซต์นี้ หรือใช้ปุ่มส่งออก CSV แทน', variant: 'destructive', duration: 6000 });
+                                            return;
+                                        }
+                                        doc.open();
+                                        doc.write(htmlContent);
+                                        doc.close();
+                                        setTimeout(() => {
+                                            iframe.contentWindow?.print();
+                                            document.body.removeChild(iframe);
+                                            toast({ title: 'ส่งออก PDF สำเร็จ', description: 'เปิดหน้าต่างพิมพ์สำหรับบันทึก PDF', className: 'bg-green-500 text-white' });
+                                        }, 250);
+                                    }
                                 } catch (error) {
                                     console.error('Export PDF error:', error);
                                     toast({ title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถส่งออก PDF ได้', variant: 'destructive' });
@@ -292,8 +282,8 @@ export function DateRangeSelector({ dateRange, onDateRangeChange }: DateRangeSel
                 </div>
 
                 {/* Custom Date Range */}
-                <div className="flex gap-4 items-end pt-4 border-t border-gold/20 justify-center">
-                    <div className="space-y-2" style={{ width: '200px' }}>
+                <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end pt-4 border-t border-gold/20 justify-center">
+                    <div className="space-y-2 w-full sm:w-[200px] min-w-0">
                         <label className="text-xs font-semibold text-muted-foreground">วันที่เริ่ม</label>
                         <div className="relative">
                             <Input
@@ -305,7 +295,7 @@ export function DateRangeSelector({ dateRange, onDateRangeChange }: DateRangeSel
                             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         </div>
                     </div>
-                    <div className="space-y-2" style={{ width: '200px' }}>
+                    <div className="space-y-2 w-full sm:w-[200px] min-w-0">
                         <label className="text-xs font-semibold text-muted-foreground">วันที่สิ้นสุด</label>
                         <div className="relative">
                             <Input

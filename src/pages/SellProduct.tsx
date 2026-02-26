@@ -187,7 +187,7 @@ const SellProduct = () => {
               </div>
 
               {/* ราคา */}
-              <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div className="summary-grid">
                 <div className="summary-card">
                   <div className="summary-card-info">
                     <div className="summary-card-label">ราคาทุน</div>

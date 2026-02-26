@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GoldCard } from '@/components/ui/gold-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ export function DeviceTypesTab() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const fetchDeviceTypes = async (isCancelled?: () => boolean) => {
+    const fetchDeviceTypes = useCallback(async (isCancelled?: () => boolean) => {
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -60,13 +60,13 @@ export function DeviceTypesTab() {
         } finally {
             if (!isCancelled?.()) setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         let cancelled = false;
         fetchDeviceTypes(() => cancelled);
         return () => { cancelled = true; };
-    }, [toast]);
+    }, [fetchDeviceTypes]);
 
     const handleSave = async () => {
         if (!formData.name.trim() || !formData.code.trim()) {
@@ -92,7 +92,7 @@ export function DeviceTypesTab() {
         setSubmitting(true);
         try {
             if (editingId) {
-                // @ts-ignore - Type inference issue with Supabase types
+                // @ts-expect-error - Type inference issue with Supabase types
                 const { error } = await supabase
                     .from('device_types')
                     .update({ 
@@ -105,7 +105,7 @@ export function DeviceTypesTab() {
                 if (error) throw error;
                 toast({ title: 'สำเร็จ', description: 'อัปเดตประเภทเครื่องเรียบร้อยแล้ว', className: 'bg-green-500 text-white' });
             } else {
-                // @ts-ignore - Type inference issue with Supabase types
+                // @ts-expect-error - Type inference issue with Supabase types
                 const { error } = await supabase
                     .from('device_types')
                     .insert([{ 
@@ -166,7 +166,7 @@ export function DeviceTypesTab() {
 
         try {
             // Soft delete: Change status to inactive
-            // @ts-ignore - Type inference issue with Supabase types
+            // @ts-expect-error - Type inference issue with Supabase types
             const { error } = await supabase
                 .from('device_types')
                 .update({ status: 'inactive' })
@@ -181,7 +181,7 @@ export function DeviceTypesTab() {
             console.error('Delete device type error:', error);
             toast({ 
                 title: 'ข้อผิดพลาด', 
-                description: 'ไม่สามารถปิดใช้งานประเภทเครื่องได้ กรุณาลองใหม่อีกครั้ง', 
+                description: getErrorMessage(error), 
                 variant: 'destructive' 
             });
         }

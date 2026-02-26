@@ -216,7 +216,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                         <Badge variant="outline" className="border-gold/30">
                             {product.shop_code}
                         </Badge>
-                        <Badge variant="outline" className="border-gold/30">
+                        <Badge variant="outline" className="border-gold/30 break-all">
                             IMEI: {product.imei}
                         </Badge>
                         <Badge variant="outline" className={`${
@@ -234,7 +234,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         ข้อมูลการเงิน
                     </h3>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="bg-secondary/20 rounded-lg p-3">
                             <p className="text-xs text-muted-foreground mb-1">ทุน</p>
                             <p className="text-lg font-bold text-foreground">
@@ -261,7 +261,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         รายละเอียดผลิตภัณฑ์
                     </h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {product.device_type_name != null && (
                             <div className="bg-card/30 rounded-lg p-3">
                                 <p className="text-xs text-muted-foreground">ประเภทเครื่อง</p>
@@ -299,7 +299,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                             ข้อมูลสินค้ามือสอง
                         </h3>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {condition && (
                                 <div className={`rounded-lg p-3 ${condition.color} border border-current/20`}>
                                     <p className="text-xs opacity-70 font-medium">เกรดสภาพ</p>
@@ -368,7 +368,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                             ข้อมูลการขาย
                         </h3>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="bg-card/30 rounded-lg p-3">
                                 <p className="text-xs text-muted-foreground">ลูกค้า</p>
                                 <p className="font-medium text-sm mt-1">{product.sold_to}</p>
@@ -411,7 +411,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                 )}
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 pb-6 [&>button]:min-h-[44px]">
                     {product.status === 'in_stock' && (
                         <Button
                             onClick={handleSell}
@@ -450,7 +450,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
         <>
             {isDesktop ? (
                 <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="max-w-3xl bg-card/95 backdrop-blur-xl border-gold/30 max-h-[90vh] overflow-y-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-300">
+                <DialogContent className="w-[95vw] max-w-3xl bg-card/95 backdrop-blur-xl border-gold/30 max-h-[calc(90vh-80px)] overflow-y-auto overflow-x-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-300 z-[100]">
                     <DialogHeader>
                         <DialogTitle className="text-2xl">รายละเอียดสินค้า</DialogTitle>
                     </DialogHeader>
@@ -459,11 +459,11 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
             </Dialog>
             ) : (
         <Drawer open={open} onOpenChange={onClose}>
-            <DrawerContent className="bg-card/95 backdrop-blur-xl border-t border-gold/30 transition-transform duration-300 ease-out">
+            <DrawerContent className="bg-card/95 backdrop-blur-xl border-t border-gold/30 transition-transform duration-300 ease-out max-h-[calc(100vh-64px)] z-[100]">
                 <DrawerHeader>
                     <DrawerTitle className="text-xl">รายละเอียดสินค้า</DrawerTitle>
                 </DrawerHeader>
-                <ScrollArea className="h-[80vh]">
+                <ScrollArea className="h-[calc(100vh-200px)]">
                     <Content />
                 </ScrollArea>
             </DrawerContent>

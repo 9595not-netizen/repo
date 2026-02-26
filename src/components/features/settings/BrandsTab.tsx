@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GoldCard } from '@/components/ui/gold-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,7 @@ export function BrandsTab() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const fetchBrands = async (isCancelled?: () => boolean) => {
+    const fetchBrands = useCallback(async (isCancelled?: () => boolean) => {
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -45,17 +45,24 @@ export function BrandsTab() {
         } finally {
             if (!isCancelled?.()) setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         let cancelled = false;
         fetchBrands(() => cancelled);
         return () => { cancelled = true; };
-    }, [toast]);
+    }, [fetchBrands]);
 
     const handleSave = async () => {
-        if (!formData.name.trim()) {
+        const trimmedName = formData.name.trim();
+
+        if (!trimmedName) {
             toast({ title: 'ข้อผิดพลาด', description: 'กรุณาระบุชื่อยี่ห้อ', variant: 'destructive' });
+            return;
+        }
+
+        if (trimmedName.length > 50) {
+            toast({ title: 'ข้อผิดพลาด', description: 'ชื่อยี่ห้อไม่ควรยาวเกิน 50 ตัวอักษร', variant: 'destructive' });
             return;
         }
 
@@ -64,13 +71,13 @@ export function BrandsTab() {
             if (editingId) {
                 const { error } = await supabase
                     .from('brands')
-                    .update({ name: formData.name, status: formData.status })
+                    .update({ name: trimmedName, status: formData.status })
                     .eq('id', editingId);
 
                 if (error) throw error;
                 toast({ title: 'สำเร็จ', description: 'อัปเดตยี่ห้อเรียบร้อยแล้ว', className: 'bg-green-500 text-white' });
             } else {
-                const { error: insertError } = await supabaseHelpers.insertBrand(supabase, { name: formData.name, status: formData.status as 'active' | 'inactive' });
+                const { error: insertError } = await supabaseHelpers.insertBrand(supabase, { name: trimmedName, status: formData.status as 'active' | 'inactive' });
 
                 if (insertError) throw insertError;
                 toast({ title: 'สำเร็จ', description: 'เพิ่มยี่ห้อเรียบร้อยแล้ว', className: 'bg-green-500 text-white' });

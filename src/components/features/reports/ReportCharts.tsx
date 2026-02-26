@@ -17,6 +17,7 @@ import {
 import { Loader2, TrendingUp, Package } from 'lucide-react';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { Database } from '@/types/database.types';
+import { filterCashSales } from './reportFilterUtils';
 
 type ProductDetail = Database['public']['Views']['product_details']['Row'];
 
@@ -71,7 +72,7 @@ export function ReportCharts({ dateRange }: ReportChartsProps) {
                 // Fetch daily sales and profit
                 const { data: sales, error: salesError } = await supabase
                     .from('product_details')
-                    .select('id, cost_price, selling_price, sold_at')
+                    .select('id, cost_price, selling_price, sold_at, payment_method')
                     .eq('status', 'sold')
                     .gte('sold_at', startIso.toISOString())
                     .lte('sold_at', endIso.toISOString())
@@ -79,10 +80,11 @@ export function ReportCharts({ dateRange }: ReportChartsProps) {
 
                 if (salesError) throw salesError;
 
-                // Group sales by day
+                // Group sales by day (เฉพาะเงินสด ไม่รวมผ่อนชำระ)
                 const dailyMap = new Map<string, DailySalesData>();
-                if (sales) {
-                    sales.forEach((sale) => {
+                const cashSales = sales ? filterCashSales(sales) : [];
+                if (cashSales.length > 0) {
+                    cashSales.forEach((sale: { sold_at: string; selling_price?: number; cost_price?: number }) => {
                         const saleDate = new Date(sale.sold_at);
                         const dateKey = saleDate.toISOString().split('T')[0];
 
@@ -138,15 +140,16 @@ export function ReportCharts({ dateRange }: ReportChartsProps) {
                     // Fallback: manual query if RPC doesn't work
                     const { data: products } = await supabase
                         .from('product_details')
-                        .select('brand_name, model_name, storage, selling_price')
+                        .select('brand_name, model_name, storage, selling_price, payment_method')
                         .eq('status', 'sold')
                         .gte('sold_at', startIso.toISOString())
                         .lte('sold_at', endIso.toISOString());
 
                     if (cancelled) return;
                     if (products) {
+                        const cashProducts = filterCashSales(products);
                         const modelMap = new Map<string, TopSellingModel>();
-                        products.forEach((p) => {
+                        cashProducts.forEach((p: { brand_name?: string; model_name?: string; storage?: string; selling_price?: number }) => {
                             const key = `${p.brand_name}_${p.model_name}_${p.storage}`;
                             if (!modelMap.has(key)) {
                                 modelMap.set(key, {
@@ -384,31 +387,67 @@ export function ReportCharts({ dateRange }: ReportChartsProps) {
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        <div className="grid grid-cols-12 gap-4 p-3 bg-muted/50 rounded-lg font-semibold text-xs text-muted-foreground">
-                            <div className="col-span-2">รหัสร้าน</div>
-                            <div className="col-span-4">สินค้า</div>
-                            <div className="col-span-2">ราคาทุน</div>
-                            <div className="col-span-2">ราคาขาย</div>
-                            <div className="col-span-2">ค้างสต๊อก (วัน)</div>
-                        </div>
-                        {stockItems.map((item) => (
-                            <div
-                                key={item.id}
-                                className="grid grid-cols-12 gap-4 p-3 border border-gold/20 rounded-lg hover:bg-muted/30 transition-colors"
-                            >
-                                <div className="col-span-2 font-medium text-sm">{item.shop_code}</div>
-                                <div className="col-span-4 text-sm">
-                                    {item.brand_name} {item.model_name} {item.storage} ({item.color_name})
-                                </div>
-                                <div className="col-span-2 text-sm">฿{item.cost_price.toLocaleString('th-TH')}</div>
-                                <div className="col-span-2 text-sm text-primary">
-                                    ฿{item.selling_price.toLocaleString('th-TH')}
-                                </div>
-                                <div className={`col-span-2 text-sm font-semibold ${item.days_in_stock > 30 ? 'text-red-600' : item.days_in_stock > 14 ? 'text-orange-600' : 'text-green-600'}`}>
-                                    {item.days_in_stock} วัน
-                                </div>
+                        {/* Tablet/Desktop: grid table */}
+                        <div className="hidden md:block">
+                            <div className="grid grid-cols-12 gap-4 p-3 bg-muted/50 rounded-lg font-semibold text-xs text-muted-foreground">
+                                <div className="col-span-2">รหัสร้าน</div>
+                                <div className="col-span-4">สินค้า</div>
+                                <div className="col-span-2">ราคาทุน</div>
+                                <div className="col-span-2">ราคาขาย</div>
+                                <div className="col-span-2">ค้างสต๊อก (วัน)</div>
                             </div>
-                        ))}
+                            {stockItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="grid grid-cols-12 gap-4 p-3 border border-gold/20 rounded-lg hover:bg-muted/30 transition-colors"
+                                >
+                                    <div className="col-span-2 font-medium text-sm">{item.shop_code}</div>
+                                    <div className="col-span-4 text-sm">
+                                        {item.brand_name} {item.model_name} {item.storage} ({item.color_name})
+                                    </div>
+                                    <div className="col-span-2 text-sm">฿{item.cost_price.toLocaleString('th-TH')}</div>
+                                    <div className="col-span-2 text-sm text-primary">
+                                        ฿{item.selling_price.toLocaleString('th-TH')}
+                                    </div>
+                                    <div className={`col-span-2 text-sm font-semibold ${item.days_in_stock > 30 ? 'text-red-600' : item.days_in_stock > 14 ? 'text-orange-600' : 'text-green-600'}`}>
+                                        {item.days_in_stock} วัน
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Mobile: card-based layout */}
+                        <div className="md:hidden space-y-3">
+                            {stockItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="rounded-xl border border-gold/30 bg-card/90 p-3 flex flex-col gap-2"
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="font-mono font-semibold text-primary text-sm">
+                                            {item.shop_code}
+                                        </div>
+                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.days_in_stock > 30 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : item.days_in_stock > 14 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
+                                            {item.days_in_stock} วัน
+                                        </span>
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                        {item.brand_name} {item.model_name} {item.storage}
+                                        <span className="text-muted-foreground text-xs ml-1">({item.color_name})</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div>
+                                            <span className="text-muted-foreground">ราคาทุน </span>
+                                            <span>฿{item.cost_price.toLocaleString('th-TH')}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-muted-foreground">ราคาขาย </span>
+                                            <span className="font-semibold text-primary">฿{item.selling_price.toLocaleString('th-TH')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
             </GoldCard>

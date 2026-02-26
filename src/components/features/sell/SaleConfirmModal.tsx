@@ -48,7 +48,7 @@ export function SaleConfirmModal({ product, saleData, onConfirm, onCancel, loadi
                             <div className="flex-1 space-y-1 min-w-0">
                                 <h3 className="text-base font-bold text-primary">{product.brand_name} {product.model_name}</h3>
                                 <p className="text-xs text-muted-foreground">{product.storage} • {product.color_name}</p>
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gold/20">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-gold/20">
                                     <div>
                                         <p className="text-xs text-muted-foreground">รหัสร้าน</p>
                                         <p className="font-semibold">{product.shop_code}</p>
@@ -103,14 +103,20 @@ export function SaleConfirmModal({ product, saleData, onConfirm, onCancel, loadi
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">ราคาขาย</span>
-                                <span className="font-semibold text-primary">฿{saleData.selling_price.toLocaleString('th-TH')}</span>
+                                <span className="font-semibold text-primary">
+                                    {saleData.payment_method === 'ผ่อนชำระ' && saleData.selling_price === 0
+                                        ? '— (ตัดสต๊อกเท่านั้น)'
+                                        : `฿${saleData.selling_price.toLocaleString('th-TH')}`}
+                                </span>
                             </div>
                             <div className="flex justify-between items-center pt-1.5 border-t border-gold/20">
                                 <span className="text-muted-foreground font-semibold">กำไร</span>
                                 <span className={`font-bold ${
                                     saleData.profit > 0 ? 'text-green-600' : saleData.profit < 0 ? 'text-red-600' : 'text-yellow-600'
                                 }`}>
-                                    ฿{saleData.profit.toLocaleString('th-TH')}
+                                    {saleData.payment_method === 'ผ่อนชำระ' && saleData.selling_price === 0
+                                        ? '— (ผ่อน)'
+                                        : `฿${saleData.profit.toLocaleString('th-TH')}`}
                                 </span>
                             </div>
                         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GoldCard } from '@/components/ui/gold-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,7 @@ export function ColorsTab() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const fetchColors = async (isCancelled?: () => boolean) => {
+    const fetchColors = useCallback(async (isCancelled?: () => boolean) => {
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -57,13 +57,13 @@ export function ColorsTab() {
         } finally {
             if (!isCancelled?.()) setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         let cancelled = false;
         fetchColors(() => cancelled);
         return () => { cancelled = true; };
-    }, [toast]);
+    }, [fetchColors]);
 
     const handleSave = async () => {
         if (!formData.name.trim() || !formData.hex_code) {

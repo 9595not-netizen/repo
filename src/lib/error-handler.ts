@@ -22,7 +22,11 @@ export function getErrorMessage(error: unknown): string {
     }
 
     if (pgError.code === '23503') {
-      return 'ข้อมูลอ้างอิงไม่ถูกต้อง';
+      const msg = (pgError.message || '').toLowerCase();
+      if (msg.includes('brand') || msg.includes('model') || msg.includes('variant') || msg.includes('color') || msg.includes('device')) {
+        return 'ไม่สามารถดำเนินการได้ เนื่องจากมีสินค้าใช้งานอยู่ กรุณาลบหรือแก้ไขสินค้าก่อน';
+      }
+      return 'ข้อมูลอ้างอิงไม่ถูกต้อง หรือมีการใช้งานอยู่ในระบบ';
     }
 
     if (pgError.code === '42501') {

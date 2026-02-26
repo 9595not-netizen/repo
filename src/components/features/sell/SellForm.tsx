@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { supabase } from '@/lib/supabase';
 import { supabaseHelpers } from '@/lib/supabase-helpers';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,20 +19,9 @@ import { SaleSuccessScreen } from './SaleSuccessScreen';
 import { getProductDisplayImage } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/error-handler';
 import { Database } from '@/types/database.types';
+import { saleFormSchema, type SaleFormValues } from './saleFormSchema';
 
 type ProductDetail = Database['public']['Views']['product_details']['Row'];
-
-// Validation schema for sale form
-const saleFormSchema = z.object({
-    payment_method: z.enum(['เงินสด', 'ผ่อนชำระ']),
-    selling_price: z.coerce.number().min(1, 'ราคาขายต้องมากกว่า 0'),
-    sold_to: z.string().min(1, 'กรุณาระบุชื่อผู้ซื้อ'),
-    contract_number: z.string().optional(),
-    sold_at: z.string(),
-    sold_by: z.string().min(1, 'กรุณาเลือกพนักงานขาย'),
-});
-
-type SaleFormValues = z.infer<typeof saleFormSchema>;
 
 export function SellForm() {
     const [searchParams] = useSearchParams();
@@ -78,7 +66,20 @@ export function SellForm() {
     const [submitting, setSubmitting] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
-    const [successData, setSuccessData] = useState<any>(null);
+    interface SaleSuccessData {
+        product: ProductDetail;
+        saleData: {
+            sold_to: string;
+            payment_method: string;
+            contract_number?: string;
+            selling_price: number;
+            sold_at: string;
+            sold_by: string;
+            profit: number;
+        };
+    }
+
+    const [successData, setSuccessData] = useState<SaleSuccessData | null>(null);
     const [saleData, setSaleData] = useState<SaleFormValues | null>(null);
 
     const form = useForm<SaleFormValues>({
@@ -95,15 +96,24 @@ export function SellForm() {
 
     const paymentMethod = form.watch('payment_method');
     const sellingPrice = form.watch('selling_price');
-    const profit = product ? (sellingPrice || 0) - (product.cost_price || 0) : 0;
+    const profit = paymentMethod === 'ผ่อนชำระ' ? 0 : (product ? (sellingPrice || 0) - (product.cost_price || 0) : 0);
 
-
-    // Set default selling price when product changes
+    // เมื่อเลือกผ่อนชำระ → ตั้งราคาขาย 0 (ใช้แค่ตัดสต๊อก); เงินสด → คืนราคาแนะนำ
     useEffect(() => {
-        if (product) {
-            form.setValue('selling_price', product.selling_price);
+        if (paymentMethod === 'ผ่อนชำระ') {
+            form.setValue('selling_price', 0);
+        } else if (product) {
+            form.setValue('selling_price', product.selling_price ?? 0);
         }
-    }, [product]);
+    }, [paymentMethod, product, form]);
+
+    // Set default selling price when product changes (ยกเว้นกรณีผ่อนชำระ)
+    useEffect(() => {
+        if (product && paymentMethod !== 'ผ่อนชำระ') {
+            form.setValue('selling_price', product.selling_price ?? 0);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run when product changes; omit form
+    }, [product, paymentMethod]);
 
     // โหลดสินค้าจาก URL เมื่อกด "ขาย" จาก Product Detail Modal (Master: navigateToSell(product_id))
     useEffect(() => {
@@ -141,6 +151,7 @@ export function SellForm() {
         };
         loadByProductId();
         return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run when productIdFromUrl changes
     }, [productIdFromUrl]);
 
     // Real-time search function (no button needed)
@@ -210,6 +221,7 @@ export function SellForm() {
         }, 500);
 
         return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run when searchTerm changes; omit handleSearch
     }, [searchTerm]);
 
     // Handle Enter key
@@ -371,26 +383,86 @@ export function SellForm() {
                 : new Date().toISOString();
 
             const soldByUserId = saleData.sold_by === '__current__' ? user.id : saleData.sold_by;
-            // 1. Update product status to sold
-            const { error: updateError } = await supabaseHelpers.updateProduct(supabase, product.id, {
-                status: 'sold',
-                selling_price: saleData.selling_price,
-                sold_by: soldByUserId,
-                sold_to: saleData.sold_to,
-                payment_method: saleData.payment_method as 'เงินสด' | 'ผ่อนชำระ' | null,
-                contract_number: saleData.payment_method === 'ผ่อนชำระ' ? saleData.contract_number : null,
-                sold_at: soldAtIso
-            });
+            const priceToSave = saleData.payment_method === 'ผ่อนชำระ' ? 0 : saleData.selling_price;
 
-            if (updateError) throw updateError;
+            // 1. พยายามใช้ RPC หากมี เพื่อให้เป็นธุรกรรมเดียวใน DB
+            let usedRpc = false;
+            try {
+                const { error: rpcError } = await supabase.rpc('complete_single_sale', {
+                    p_product_id: product.id,
+                    p_sold_to: saleData.sold_to,
+                    p_payment_method: saleData.payment_method,
+                    p_contract_number: saleData.contract_number ?? null,
+                    p_selling_price: priceToSave,
+                    p_sold_at: soldAtIso,
+                    p_sold_by: soldByUserId,
+                });
 
-            // 2. Insert inventory log
-            await supabaseHelpers.insertInventoryLog(supabase, {
-                product_id: product.id,
-                action_type: 'sell',
-                action_by: user.id,
-                action_note: `ขายให้: ${saleData.sold_to} (${saleData.payment_method})`
-            });
+                if (rpcError) {
+                    const code = (rpcError as { code?: string }).code;
+                    const msg = (rpcError as { message?: string }).message ?? '';
+                    const isRpcMissing =
+                        code === 'PGRST202' ||
+                        /404|not found|function/i.test(msg);
+
+                    if (!isRpcMissing) {
+                        throw rpcError;
+                    }
+                } else {
+                    usedRpc = true;
+                }
+            } catch (e) {
+                if (e && typeof e === 'object' && 'code' in e) {
+                    const code = (e as { code?: string }).code;
+                    const msg = (e as { message?: string }).message ?? '';
+                    const isRpcMissing =
+                        code === 'PGRST202' ||
+                        /404|not found|function/i.test(msg);
+                    if (!isRpcMissing) {
+                        throw e;
+                    }
+                } else {
+                    throw e;
+                }
+            }
+
+            if (!usedRpc) {
+                // Fallback เดิม: update โดยตรงในตาราง products
+                const { data: updatedProduct, error: updateError } = await supabase
+                    .from('products')
+                    .update({
+                        status: 'sold',
+                        selling_price: priceToSave,
+                        sold_by: soldByUserId,
+                        sold_to: saleData.sold_to,
+                        payment_method: saleData.payment_method as 'เงินสด' | 'ผ่อนชำระ' | null,
+                        contract_number: saleData.payment_method === 'ผ่อนชำระ' ? saleData.contract_number : null,
+                        sold_at: soldAtIso,
+                    } as never)
+                    .eq('id', product.id)
+                    .eq('status', 'in_stock')
+                    .select()
+                    .single();
+
+                if (updateError) {
+                    throw updateError;
+                }
+
+                if (!updatedProduct) {
+                    throw new Error('ไม่พบสินค้าสำหรับขาย หรือสินค้านี้ถูกขายไปแล้ว');
+                }
+
+                // 2. Insert inventory log (เฉพาะ fallback; RPC จะเขียน log เอง)
+                const { error: logError } = await supabaseHelpers.insertInventoryLog(supabase, {
+                    product_id: product.id,
+                    action_type: 'sell',
+                    action_by: user.id,
+                    action_note: `ขายให้: ${saleData.sold_to} (${saleData.payment_method})`,
+                });
+                if (logError) {
+                    console.error('Inventory log error (sell):', logError);
+                }
+            }
 
             // Show success screen
             setSuccessData({
@@ -592,20 +664,27 @@ export function SellForm() {
                                     </div>
                                 </div>
 
-                                {/* Selling Price */}
-                                <div className="space-y-2">
-                                    <Label>ราคาขาย (฿) *</Label>
-                                    <Input
-                                        type="number"
-                                        {...form.register('selling_price')}
-                                        placeholder="0"
-                                        disabled={submitting}
-                                        className="text-lg"
-                                    />
-                                    {form.formState.errors.selling_price && (
-                                        <p className="text-xs text-destructive">{form.formState.errors.selling_price.message}</p>
-                                    )}
-                                </div>
+                                {/* Selling Price - ไม่ใช้สำหรับผ่อนชำระ (ใช้แค่ตัดสต๊อก) */}
+                                {paymentMethod === 'เงินสด' ? (
+                                    <div className="space-y-2">
+                                        <Label>ราคาขาย (฿) *</Label>
+                                        <Input
+                                            type="number"
+                                            {...form.register('selling_price')}
+                                            placeholder="0"
+                                            disabled={submitting}
+                                            className="text-lg"
+                                        />
+                                        {form.formState.errors.selling_price && (
+                                            <p className="text-xs text-destructive">{form.formState.errors.selling_price.message}</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <Label>ราคาขาย</Label>
+                                        <p className="text-sm text-muted-foreground py-2">ผ่อนชำระ — ไม่บันทึกราคาขาย (ตัดสต๊อกเท่านั้น)</p>
+                                    </div>
+                                )}
 
                                 {/* Customer Name */}
                                 <div className="space-y-2">
@@ -690,7 +769,7 @@ export function SellForm() {
                                 สรุปการขาย
                             </h3>
 
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="bg-secondary/50 p-4 rounded-lg">
                                     <p className="text-xs text-muted-foreground">ราคาทุน</p>
                                     <p className="text-2xl font-bold text-secondary-foreground">

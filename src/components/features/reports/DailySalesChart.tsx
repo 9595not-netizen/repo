@@ -26,7 +26,7 @@ export const DailySalesChart = memo(function DailySalesChart({ dateRange }: Dail
             try {
                 const { data: sales, error } = await supabase
                     .from('product_details')
-                    .select('id, cost_price, selling_price, sold_at')
+                    .select('id, cost_price, selling_price, sold_at, payment_method')
                     .eq('status', 'sold')
                     .gte('sold_at', dateRange.start.toISOString())
                     .lte('sold_at', dateRange.end.toISOString())
@@ -38,7 +38,8 @@ export const DailySalesChart = memo(function DailySalesChart({ dateRange }: Dail
                     // Group sales by day
                     const dailyMap = new Map<string, DailySalesData>();
 
-                    sales.forEach((sale) => {
+                    sales.forEach((sale: { sold_at: string; selling_price?: number; cost_price?: number; payment_method?: string | null }) => {
+                        if (sale.payment_method === 'ผ่อนชำระ') return;
                         const saleDate = new Date(sale.sold_at);
                         const dateKey = saleDate.toISOString().split('T')[0];
 

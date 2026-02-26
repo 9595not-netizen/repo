@@ -40,8 +40,8 @@ export function useSellProduct() {
       const profit = data.sellingPrice - (await getProductCost(data.productId));
       const timestamp = new Date().toISOString();
 
-      // อัปเดตสินค้า
-      const { error: updateError } = await supabase
+      // อัปเดตสินค้า (เฉพาะกรณียังพร้อมขายอยู่เท่านั้น)
+      const { data: updatedProduct, error: updateError } = await supabase
         .from('products')
         .update({
           status: 'sold',
@@ -52,18 +52,29 @@ export function useSellProduct() {
           payment_method: data.paymentMethod,
           contract_number: data.paymentMethod === 'ผ่อนชำระ' ? data.contractNumber : null,
           updated_at: timestamp, // บันทึก timestamp
-        })
-        .eq('id', data.productId);
+        } as never)
+        .eq('id', data.productId)
+        .eq('status', 'in_stock')
+        .select()
+        .single();
 
       if (updateError) throw updateError;
 
-      // บันทึก inventory log พร้อม timestamp
-      await supabaseHelpers.insertInventoryLog(supabase, {
+      if (!updatedProduct) {
+        throw new Error('ไม่พบสินค้าสำหรับขาย หรือสินค้านี้ถูกขายไปแล้ว');
+      }
+
+      // บันทึก inventory log พร้อม timestamp (ถ้า log ล้มเหลว จะไม่ยกเลิกการขาย แต่ log error ไว้)
+      const { error: logError } = await supabaseHelpers.insertInventoryLog(supabase, {
         product_id: data.productId,
         action_type: 'sell',
         action_by: soldByUserId,
         action_note: `ขายให้: ${data.soldTo} | วิธีชำระ: ${data.paymentMethod}${data.contractNumber ? ` | สัญญา: ${data.contractNumber}` : ''} | ราคาขาย: ฿${data.sellingPrice.toLocaleString()} | กำไร: ฿${profit.toLocaleString()}`,
       });
+
+      if (logError) {
+        console.error('Inventory log error (useSellProduct):', logError);
+      }
 
       return { success: true, profit, soldBy: soldByUserId };
     } catch (e) {

@@ -93,18 +93,23 @@ export function SaleEditModal({ open, onOpenChange, record, onSuccess }: SaleEdi
             toast({ title: 'กรุณาระบุเลขที่สัญญาสำหรับผ่อนชำระ', variant: 'destructive' });
             return;
         }
+        if (paymentMethod === 'เงินสด' && price < 1) {
+            toast({ title: 'กรุณาระบุราคาขายมากกว่า 0 สำหรับขายสด', variant: 'destructive' });
+            return;
+        }
 
+        const finalPrice = paymentMethod === 'ผ่อนชำระ' ? 0 : price;
         setLoading(true);
         try {
             type PaymentOpt = (typeof PAYMENT_OPTIONS)[number];
             const pm: PaymentOpt = PAYMENT_OPTIONS.includes(paymentMethod as PaymentOpt) ? (paymentMethod as PaymentOpt) : 'เงินสด';
-            const profit = price - record.cost_price;
+            const profit = finalPrice - record.cost_price;
             const soldAtIso = soldAt ? new Date(soldAt).toISOString() : new Date().toISOString();
             const { error } = await supabase
                 .from('products')
                 .update({
                     sold_to: to,
-                    selling_price: price,
+                    selling_price: finalPrice,
                     profit,
                     payment_method: pm,
                     sold_at: soldAtIso,
@@ -141,19 +146,32 @@ export function SaleEditModal({ open, onOpenChange, record, onSuccess }: SaleEdi
                         <Label>ชื่อผู้ซื้อ</Label>
                         <Input value={soldTo} onChange={(e) => setSoldTo(e.target.value)} placeholder="ชื่อลูกค้า" />
                     </div>
-                    <div>
-                        <Label>ราคาขาย (฿)</Label>
-                        <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={sellingPrice}
-                            onChange={(e) => setSellingPrice(e.target.value)}
-                        />
-                    </div>
+                    {paymentMethod === 'เงินสด' ? (
+                        <div>
+                            <Label>ราคาขาย (฿)</Label>
+                            <Input
+                                type="number"
+                                min={1}
+                                step={0.01}
+                                value={sellingPrice}
+                                onChange={(e) => setSellingPrice(e.target.value)}
+                            />
+                        </div>
+                    ) : (
+                        <div>
+                            <Label>ราคาขาย</Label>
+                            <p className="text-sm text-muted-foreground py-1">ผ่อนชำระ — ไม่บันทึกราคาขาย</p>
+                        </div>
+                    )}
                     <div>
                         <Label>วิธีชำระเงิน</Label>
-                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                        <Select
+                            value={paymentMethod}
+                            onValueChange={(v) => {
+                                setPaymentMethod(v);
+                                if (v === 'ผ่อนชำระ') setSellingPrice('0');
+                            }}
+                        >
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>

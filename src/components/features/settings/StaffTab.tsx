@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoldCard } from '@/components/ui/gold-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,7 +52,7 @@ export function StaffTab() {
 
     const mountedRef = useRef(true);
 
-    const fetchStaff = async () => {
+    const fetchStaff = useCallback(async () => {
         setLoading(true);
         setFetchError(null);
         try {
@@ -78,13 +78,13 @@ export function StaffTab() {
         } finally {
             if (mountedRef.current) setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         mountedRef.current = true;
         fetchStaff();
         return () => { mountedRef.current = false; };
-    }, []);
+    }, [fetchStaff]);
 
     const handleSave = async () => {
         // Validation

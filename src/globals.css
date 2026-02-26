@@ -98,7 +98,14 @@
 }
 
 /* ─────────────────────────────────────────
-   3. BASE RESET
+   2.5 RESPONSIVE BREAKPOINTS (System-wide)
+   Mobile: ≤767px | Tablet: 768px–1199px | Desktop: ≥1200px
+───────────────────────────────────────── */
+/* Breakpoint vars for media queries */
+/* Mobile-first: base = mobile, @768 = tablet, @1200 = desktop */
+
+/* ─────────────────────────────────────────
+   3. BASE RESET + OVERFLOW PROTECTION
 ───────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -106,8 +113,23 @@
   padding: 0;
 }
 
+/* Overflow protection - prevent layout break; min-width for very narrow screens (< 320px) */
+html {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  min-width: 320px;
+}
+
+/* Word break for long strings (IMEI, dates, etc.) */
+.text-break-safe,
+[data-responsive] {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 html, body, #root {
   width: 100%;
+  min-width: 320px;
   height: 100%;
   font-family: 'Prompt', sans-serif;
   background-color: var(--bg-page);
@@ -157,7 +179,7 @@ html.dark body {
 
 .page-title {
   display: inline-block;
-  font-size: var(--page-title-size);        /* 32px */
+  font-size: clamp(1.5rem, 4vw + 1rem, var(--page-title-size)); /* Responsive: ~24px mobile → 32px desktop */
   font-weight: var(--page-title-weight);    /* 800 */
   line-height: 1.2;
   font-family: 'Prompt', sans-serif;
@@ -200,10 +222,17 @@ html.dark body {
   width: 100%;
   max-width: var(--card-max-width);         /* 1400px */
   margin: 0 auto;
-  padding: 0 16px 24px;
+  padding: 0 12px 24px;
   display: flex;
   flex-direction: column;
   gap: var(--gap-lg);                       /* 24px */
+  min-width: 0;                             /* Prevent overflow */
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    padding: 0 16px 24px;
+  }
 }
 
 /* ─────────────────────────────────────────
@@ -236,37 +265,31 @@ html.dark body {
 
 /* ─────────────────────────────────────────
    8. SUMMARY CARDS (Dashboard / Reports)
-   Responsive Grid - Scale และ Rearrange อัตโนมัติ
+   Responsive: 1 col mobile | 2 cols tablet | 4 cols desktop
 ───────────────────────────────────────── */
 .summary-grid {
   display: grid;
   gap: var(--gap-md);
   width: 100%;
-
-  /* Mobile: 2 คอลัมน์ */
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr; /* Mobile: 1 column */
 }
 
-/* Tablet: 2 คอลัมน์ (เหมือนเดิม แต่ card ใหญ่ขึ้น) */
 @media (min-width: 768px) {
   .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr); /* Tablet */
     gap: var(--gap-lg);
   }
 }
 
-/* Desktop: 4 คอลัมน์ */
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
   .summary-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, 1fr); /* Desktop */
     gap: var(--gap-lg);
   }
 }
 
-/* Large Desktop: 4 คอลัมน์ แต่ card ใหญ่ขึ้น */
 @media (min-width: 1400px) {
   .summary-grid {
-    grid-template-columns: repeat(4, 1fr);
     gap: 32px;
   }
 }
@@ -282,6 +305,8 @@ html.dark body {
   gap: 12px;
   min-height: 90px;
   transition: box-shadow 0.2s;
+  width: 100%;
+  min-width: 0; /* Allow flex shrink */
 }
 
 .summary-card:hover {
@@ -523,13 +548,13 @@ html.dark body {
 
 .form-grid-2 {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr; /* Mobile: 1 column */
   gap: 16px;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .form-grid-2 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr); /* Tablet+: 2 columns */
   }
 }
 
@@ -716,27 +741,25 @@ html.dark body {
 
 /* ─────────────────────────────────────────
    14. QUICK ACTION BUTTONS (Dashboard)
-   Responsive Grid - Scale และ Rearrange อัตโนมัติ
+   Responsive: 1 col mobile | 2 cols tablet | 4 cols desktop
 ───────────────────────────────────────── */
 .quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr; /* Mobile: 1 column */
   gap: var(--gap-md);
   width: 100%;
 }
 
-/* Tablet: 4 คอลัมน์ */
 @media (min-width: 768px) {
   .quick-actions-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr); /* Tablet: 2 columns */
     gap: var(--gap-lg);
   }
 }
 
-/* Desktop: 4 คอลัมน์ (ใหญ่ขึ้น) */
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
   .quick-actions-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, 1fr); /* Desktop: 4 columns */
     gap: 24px;
   }
 }
@@ -878,9 +901,17 @@ html.dark body {
 
 /* ─────────────────────────────────────────
    16. TABLE STANDARD (ตั้งค่า)
+   Wrapper: overflow-x-auto for mobile/tablet
 ───────────────────────────────────────── */
+.data-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .data-table {
   width: 100%;
+  min-width: 600px; /* Prevent column crush, enables scroll */
   border-collapse: collapse;
 }
 
@@ -963,13 +994,13 @@ html.dark body {
 
 .date-range-inputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr; /* Mobile: 1 column */
   gap: 16px;
 }
 
-@media (max-width: 480px) {
+@media (min-width: 768px) {
   .date-range-inputs {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -1082,7 +1113,7 @@ html.dark body {
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
-  min-height: 42px;
+  min-height: 44px; /* Mobile accessibility - touch target */
 }
 
 .btn-primary {
@@ -1135,8 +1166,17 @@ html.dark body {
 .btn-full { width: 100%; }
 
 .btn-icon-only {
-  padding: 8px;
-  min-height: unset;
+  padding: 10px;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (min-width: 768px) {
+  .btn-icon-only {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 8px;
+  }
 }
 
 /* ปุ่มสีเพิ่มเติมสำหรับใช้ทั่วแอพ */
@@ -1195,7 +1235,8 @@ html.dark body {
 }
 
 /* ─────────────────────────────────────────
-   22. MODAL
+   22. MODAL (Responsive)
+   Max-width 95% on mobile, center aligned, scrollable content
 ───────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
@@ -1205,18 +1246,28 @@ html.dark body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 12px;
+  overflow-y: auto;
 }
 
 .modal-box {
   background: white;
   border-radius: 16px;
   width: 100%;
-  max-width: 500px;
+  max-width: 95vw; /* Mobile: 95% viewport */
+  margin: auto;
   max-height: 90vh;
   overflow-y: auto;
-  padding: 24px;
+  overflow-x: hidden;
+  padding: 20px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+@media (min-width: 768px) {
+  .modal-box {
+    max-width: 500px;
+    padding: 24px;
+  }
 }
 
 .modal-title {
@@ -1237,9 +1288,28 @@ html.dark body {
 
 .modal-footer {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-top: 24px;
-  justify-content: flex-end;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .modal-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+.modal-footer .btn {
+  width: 100%;
+  min-height: 44px;
+}
+
+@media (min-width: 768px) {
+  .modal-footer .btn {
+    width: auto;
+  }
 }
 
 /* ─────────────────────────────────────────

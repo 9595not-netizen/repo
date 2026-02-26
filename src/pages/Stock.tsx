@@ -299,7 +299,11 @@ export default function StockPage() {
         </>
       ) : (
         <div className="text-center py-20 text-muted-foreground bg-card/30 rounded-xl border border-dashed border-border">
-          <p>ไม่พบสินค้าที่ค้นหา</p>
+          <p>
+            {filters.status === 'all' && !filters.search && filters.brand === 'all' && filters.model === 'all'
+              ? 'ยังไม่มีสินค้าในคลัง คลิก "เพิ่มสินค้า" เพื่อเริ่มต้น'
+              : 'ไม่พบสินค้าตามเงื่อนไขที่ค้นหา'}
+          </p>
         </div>
       )}
 

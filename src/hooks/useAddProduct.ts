@@ -140,13 +140,17 @@ export function useAddProduct() {
         if (usedError) throw usedError;
       }
 
-      // บันทึก inventory log พร้อม timestamp
-      await supabaseHelpers.insertInventoryLog(supabase, {
+      // บันทึก inventory log พร้อม timestamp (ถ้า log ล้มเหลว จะไม่ยกเลิกการเพิ่มสินค้า แต่ log error ไว้)
+      const { error: logError } = await supabaseHelpers.insertInventoryLog(supabase, {
         product_id: productId,
         action_type: 'add',
         action_by: createdByUserId,
         action_note: `เพิ่มสินค้าใหม่ [Shop Code: ${data.shop_code}]${data.source ? ` | ที่มา: ${data.source}` : ''} | ราคาทุน: ฿${data.cost_price.toLocaleString()}`,
       });
+
+      if (logError) {
+        console.error('Inventory log error (addProduct):', logError);
+      }
 
       return product;
     } catch (e) {

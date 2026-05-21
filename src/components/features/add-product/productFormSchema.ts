@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { IMEI_SERIAL_MAX_LENGTH, IMEI_SERIAL_PATTERN } from './imeiValidation';
 
 export const productSchema = z.object({
   shop_code: z
@@ -9,7 +10,9 @@ export const productSchema = z.object({
   imei: z
     .string()
     .trim()
-    .regex(/^\d{15}$/, 'IMEI ต้องเป็นตัวเลข 15 หลัก'),
+    .min(1, 'กรุณาระบุ IMEI หรือหมายเลขเครื่อง')
+    .max(IMEI_SERIAL_MAX_LENGTH, `หมายเลขเครื่องยาวเกิน ${IMEI_SERIAL_MAX_LENGTH} ตัว`)
+    .regex(IMEI_SERIAL_PATTERN, 'ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษและตัวเลข'),
   brand_id: z.string().min(1, 'กรุณาเลือกยี่ห้อ'),
   model_id: z.string().min(1, 'กรุณาเลือกรุ่น'),
   model_variant_id: z.string().min(1, 'กรุณาเลือกความจุ'),

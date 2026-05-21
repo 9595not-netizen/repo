@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { GoldCard } from '@/components/ui/gold-card';
 import { Loader2, Camera, Save, Scan } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { IMEIScanner } from './IMEIScanner';
+import { LazyIMEIScanner } from './LazyIMEIScanner';
 import { ImageUploader } from './ImageUploader';
 import { useAddProduct } from '@/hooks/useAddProduct';
 import { useStaffList } from '@/hooks/useStaffList';
@@ -22,6 +22,7 @@ import { supabaseHelpers } from '@/lib/supabase-helpers';
 import { getErrorMessage } from '@/lib/error-handler';
 import type { Brand, Model, ModelVariant, Color, DeviceType, Product, ProductWithSource, UsedProductDetail } from '@/types/common.types';
 import { productSchema, type ProductFormValues } from './productFormSchema';
+import { buildSaleFieldsClearOnly } from '@/lib/product-sale-reset';
 
 interface ProductFormProps {
     /** โหมด Modal: ส่ง productId ตรงๆ แทน URL */
@@ -59,6 +60,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
     const [showImeiScanner, setShowImeiScanner] = useState(false);
     const [loadingProduct, setLoadingProduct] = useState(!!productId);
     const [editProductId, setEditProductId] = useState<string | null>(productId);
+    const [editProductStatus, setEditProductStatus] = useState<string | null>(null);
     const { addProduct } = useAddProduct();
 
     const form = useForm<ProductFormValues>({
@@ -102,6 +104,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                     return;
                 }
                 const p = prod as ProductWithSource;
+                setEditProductStatus(p.status ?? null);
                 const { data: mv } = await supabase
                     .from('model_variants')
                     .select('model_id')
@@ -299,7 +302,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                     }
                 }
 
-                const { error: updateError } = await supabaseHelpers.updateProduct(supabase, editProductId, {
+                const updatePayload = {
                     shop_code: data.shop_code,
                     imei: data.imei,
                     model_variant_id: data.model_variant_id,
@@ -309,7 +312,17 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                     cost_price: data.cost_price,
                     received_date: data.received_date || null,
                     updated_at: timestamp,
-                });
+                    ...(editProductStatus === 'in_stock' ||
+                    editProductStatus === 'reserved' ||
+                    editProductStatus === 'service'
+                        ? buildSaleFieldsClearOnly()
+                        : {}),
+                };
+                const { error: updateError } = await supabaseHelpers.updateProduct(
+                    supabase,
+                    editProductId,
+                    updatePayload
+                );
 
                 if (updateError) {
                     throw updateError;
@@ -427,13 +440,13 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
 
                         {/* IMEI */}
                         <div className="space-y-2">
-                            <Label>IMEI (15 หลัก) *</Label>
+                            <Label>IMEI / หมายเลขเครื่อง *</Label>
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
                                     <Input
                                         {...form.register('imei')}
-                                        placeholder="กรอกหรือสแกน IMEI"
-                                        maxLength={15}
+                                        placeholder="เช่น IMEI 15 หลัก หรือ Serial iPad"
+                                        maxLength={64}
                                         className="pl-9"
                                         disabled={loading || loadingProduct}
                                     />
@@ -453,7 +466,7 @@ export function ProductForm({ productIdFromModal, onSuccess, onCancel, embedded 
                             </div>
                             {form.formState.errors.imei && <p className="text-xs text-destructive">{form.formState.errors.imei.message}</p>}
                         </div>
-                        <IMEIScanner
+                        <LazyIMEIScanner
                             open={showImeiScanner}
                             onClose={() => setShowImeiScanner(false)}
                             onScan={(imei) => form.setValue('imei', imei)}

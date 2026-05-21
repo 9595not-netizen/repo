@@ -41,6 +41,7 @@ export default defineConfig(({ mode }) => ({
                     ],
                     'data-vendor': ['@tanstack/react-query', '@supabase/supabase-js'],
                     'charts': ['recharts'],
+                    'scanner': ['html5-qrcode'],
                     'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
                 },
             },

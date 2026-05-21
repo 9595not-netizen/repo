@@ -7,6 +7,7 @@ import { SaleViewModal } from './SaleViewModal';
 import { SaleEditModal } from './SaleEditModal';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-handler';
+import { buildSaleResetUpdate } from '@/lib/product-sale-reset';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
@@ -181,16 +182,11 @@ export function SalesTransactionTable({ dateRange, onDateRangeChange }: SalesTra
             if (!usedRpc) {
                 const { error } = await supabase
                     .from('products')
-                    .update({
-                        status: 'in_stock',
-                        sold_to: null,
-                        sold_at: null,
-                        sold_by: null,
-                        selling_price: deleteRecord.cost_price,
-                        payment_method: null,
-                        contract_number: null,
-                    })
-                    .eq('id', deleteRecord.id);
+                    .update(
+                        buildSaleResetUpdate(deleteRecord.cost_price ?? 0) as never
+                    )
+                    .eq('id', deleteRecord.id)
+                    .eq('status', 'sold');
 
                 if (error) throw error;
 

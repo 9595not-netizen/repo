@@ -57,7 +57,7 @@ export interface SaleFormData {
   contract_number?: string;
 }
 
-/** ผลลัพธ์การขายสำเร็จ (ใช้ใน SellProduct / SaleSuccessScreen) - snake_case ตรงกับ SaleSuccessScreen */
+/** ผลลัพธ์การขายสำเร็จ (SaleSuccessScreen / MultiSaleSuccessScreen) */
 export interface SaleResultSuccess {
   product: ProductDetail;
   saleData: {
@@ -70,12 +70,6 @@ export interface SaleResultSuccess {
     sold_by_name?: string;
     profit: number;
   };
-}
-
-/** Cart item สำหรับ PaymentModal (ต้องมี id) */
-export interface CartItemForPayment {
-  id: string;
-  [key: string]: unknown;
 }
 
 /** Recharts Tooltip payload entry */

@@ -1,9 +1,19 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { DateRangeSelector } from '@/components/features/reports/DateRangeSelector';
 import { ReportsSummaryCards } from '@/components/features/reports/ReportsSummaryCards';
-import { ReportCharts } from '@/components/features/reports/ReportCharts';
 import { SalesTransactionTable } from '@/components/features/reports/SalesTransactionTable';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ReportCharts = lazy(() =>
+  import('@/components/features/reports/ReportCharts').then((m) => ({
+    default: m.ReportCharts,
+  }))
+);
+
+function ReportChartsSkeleton() {
+  return <Skeleton className="min-h-[280px] w-full rounded-2xl" />;
+}
 
 export default function Reports() {
     const [dateRange, setDateRange] = useState({
@@ -25,8 +35,10 @@ export default function Reports() {
                 {/* Summary Cards */}
                 <ReportsSummaryCards dateRange={dateRange} />
 
-                {/* Report Charts */}
-                <ReportCharts dateRange={dateRange} />
+                {/* Report Charts — lazy load recharts */}
+                <Suspense fallback={<ReportChartsSkeleton />}>
+                    <ReportCharts dateRange={dateRange} />
+                </Suspense>
 
                 {/* Sales Transaction Table */}
                 <SalesTransactionTable

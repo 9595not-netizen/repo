@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, BarChart2, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart2, Bell, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { label: 'Stock', labelTh: 'สต๊อก', icon: Package, href: '/stock', color: '#3B82F6' },
   { label: 'Sell', labelTh: 'ขาย', icon: ShoppingCart, href: '/sell', color: '#10B981' },
   { label: 'Reports', labelTh: 'รายงาน', icon: BarChart2, href: '/reports', color: '#F97316' },
+  { label: 'LowStock', labelTh: 'สต๊อกต่ำ', icon: Bell, href: '/low-stock', color: '#EAB308' },
   { label: 'Settings', labelTh: 'ตั้งค่า', icon: Settings, href: '/settings', color: '#EC4899' },
 ];
 

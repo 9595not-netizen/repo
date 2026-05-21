@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
+import { RouteFallback } from '@/components/layout/RouteFallback';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
 
@@ -22,7 +24,9 @@ export function Layout() {
         }}
       >
         <div className="grid grid-cols-1 gap-2 p-2 md:gap-4 md:p-4 lg:px-8">
-          <Outlet />
+          <Suspense fallback={<RouteFallback />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 

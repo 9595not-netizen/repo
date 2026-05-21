@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/co
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, LogIn, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 
+const REMEMBER_ME_KEY = 'rememberMe';
+const REMEMBER_USERNAME_KEY = 'notmobile_remember_username';
+
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -23,12 +26,32 @@ export default function Login() {
   const { session } = useAuth();
   const { theme, setTheme } = useTheme();
 
+  // โหลดชื่อผู้ใช้ที่จดจำไว้
+  useEffect(() => {
+    if (localStorage.getItem(REMEMBER_ME_KEY) === 'true') {
+      const savedUsername = localStorage.getItem(REMEMBER_USERNAME_KEY);
+      if (savedUsername) {
+        setUsername(savedUsername);
+        setRememberMe(true);
+      }
+    }
+  }, []);
+
   // Redirect if already logged in
   useEffect(() => {
     if (session) {
       navigate('/');
     }
   }, [session, navigate]);
+
+  const clearFieldError = (field: 'username' | 'password') => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const validateForm = () => {
     const errors: { username?: string; password?: string } = {};
@@ -128,11 +151,12 @@ export default function Login() {
         return;
       }
 
-      // Store remember me preference
       if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
+        localStorage.setItem(REMEMBER_ME_KEY, 'true');
+        localStorage.setItem(REMEMBER_USERNAME_KEY, username.trim());
       } else {
-        localStorage.removeItem('rememberMe');
+        localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(REMEMBER_USERNAME_KEY);
       }
 
       navigate('/');
@@ -199,7 +223,10 @@ export default function Login() {
                 type="text"
                 placeholder="กรอกชื่อผู้ใช้"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  clearFieldError('username');
+                }}
                 onKeyPress={handleKeyPress}
                 disabled={loading}
                 className={`bg-background/50 border-gold/30 focus:border-gold focus:ring-gold/20 text-sm ${
@@ -222,7 +249,10 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="กรอกรหัสผ่าน"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    clearFieldError('password');
+                  }}
                   onKeyPress={handleKeyPress}
                   disabled={loading}
                   className={`bg-background/50 border-gold/30 focus:border-gold focus:ring-gold/20 text-sm pr-10 ${
@@ -267,7 +297,7 @@ export default function Login() {
             {/* Login Button */}
             <Button
               type="submit"
-              disabled={loading || !!fieldErrors.username || !!fieldErrors.password}
+              disabled={loading}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (

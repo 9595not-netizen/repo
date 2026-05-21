@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseHelpers } from '@/lib/supabase-helpers';
 import type { Database } from '@/types/database.types';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildFreshProductSaleFields } from '@/lib/product-sale-reset';
 
 type ProductInsert = Database['public']['Tables']['products']['Insert'];
 type UsedDetailsInsert = Database['public']['Tables']['used_product_details']['Insert'];
@@ -105,12 +106,13 @@ export function useAddProduct() {
         device_type_id: data.device_type_id,
         type: data.type,
         cost_price: data.cost_price,
-        selling_price: data.cost_price, // ตั้งราคาขายเท่ากับราคาทุนก่อน (แก้ไขได้ในหน้า Sell)
+        selling_price: data.cost_price, // รอบขายใหม่ — เริ่มจากทุน ไม่ดึงราคาขาย/กำไรเก่า
         received_date: data.received_date,
         status: 'in_stock',
         created_by: createdByUserId,
-        created_at: timestamp, // บันทึก timestamp
-        updated_at: timestamp, // บันทึก timestamp
+        created_at: timestamp,
+        updated_at: timestamp,
+        ...buildFreshProductSaleFields(),
       };
 
       const { data: product, error: productError } = await supabaseHelpers.insertProduct(supabase, productData);

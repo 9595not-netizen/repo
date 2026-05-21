@@ -48,12 +48,18 @@ export class ErrorBoundary extends Component<Props, State> {
                 </pre>
               </details>
             )}
-            <Button
-              onClick={() => (window.location.href = '/')}
-              className="w-full"
-            >
-              กลับหน้าหลัก
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => this.setState({ hasError: false, error: undefined })}
+                className="flex-1"
+              >
+                ลองใหม่
+              </Button>
+              <Button onClick={() => (window.location.href = '/')} className="flex-1">
+                กลับหน้าหลัก
+              </Button>
+            </div>
           </div>
         </div>
       );

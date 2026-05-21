@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-handler';
 import { Database } from '@/types/database.types';
-import { IMEIScanner } from '@/components/features/add-product/IMEIScanner';
+import { LazyIMEIScanner } from '@/components/features/add-product/LazyIMEIScanner';
 
 type ProductDetail = Database['public']['Views']['product_details']['Row'];
 
@@ -308,7 +308,7 @@ export function ProductLookup({ onProductFound }: ProductLookupProps) {
                 </button>
             </div>
             
-            <IMEIScanner
+            <LazyIMEIScanner
                 open={showImeiScanner}
                 onClose={() => setShowImeiScanner(false)}
                 onScan={handleScan}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Edit, Trash2, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { hasActiveSaleRecord } from '@/lib/product-sale-reset';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Database } from '@/types/database.types';
@@ -391,8 +392,8 @@ function ProductDetailContent({ product }: { product: ProductDetail }) {
           />
         </div>
 
-        {/* Sold Info */}
-        {product.sold_at && (
+        {/* Sold Info — เฉพาะสถานะขายแล้ว (ไม่แสดงข้อมูลขายเก่าหลังคืนสต๊อก) */}
+        {hasActiveSaleRecord(product.status) && product.sold_at && (
           <div className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 p-3">
             <h4 className="text-sm font-semibold mb-2 text-red-600 dark:text-red-400">
               🎯 ข้อมูลการขาย

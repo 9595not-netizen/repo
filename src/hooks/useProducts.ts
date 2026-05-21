@@ -19,18 +19,34 @@ export interface StockFilters {
 export type SortField = 'selling_price' | 'created_at';
 export type SortOrder = 'asc' | 'desc';
 
-const defaultFilters: StockFilters = {
+/** ลำดับแสดงเมื่อเลือก "ทั้งหมด" — พร้อมขายมาก่อน */
+const STATUS_DISPLAY_ORDER: Record<string, number> = {
+  in_stock: 0,
+  reserved: 1,
+  service: 2,
+  sold: 3,
+};
+
+export const defaultStockFilters: StockFilters = {
   search: '',
   brand: 'all',
   model: 'all',
   color: 'all',
-  status: 'all',
+  status: 'in_stock',
   type: 'all',
   deviceType: 'all',
 };
 
+function sortByStatusPriority(items: ProductDetailRow[]): ProductDetailRow[] {
+  return [...items].sort((a, b) => {
+    const orderA = STATUS_DISPLAY_ORDER[a.status ?? ''] ?? 99;
+    const orderB = STATUS_DISPLAY_ORDER[b.status ?? ''] ?? 99;
+    return orderA - orderB;
+  });
+}
+
 export function useProducts(initialFilters?: Partial<StockFilters>) {
-  const [filters, setFilters] = useState<StockFilters>({ ...defaultFilters, ...initialFilters });
+  const [filters, setFilters] = useState<StockFilters>({ ...defaultStockFilters, ...initialFilters });
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [products, setProducts] = useState<ProductDetailRow[]>([]);
@@ -69,8 +85,10 @@ export function useProducts(initialFilters?: Partial<StockFilters>) {
 
         if (err) throw err;
         setTotal(count ?? 0);
-        if (append) setProducts((prev) => (pageNum === 1 ? (data ?? []) : [...prev, ...(data ?? [])]));
-        else setProducts(data ?? []);
+        const rows =
+          filters.status === 'all' ? sortByStatusPriority(data ?? []) : (data ?? []);
+        if (append) setProducts((prev) => (pageNum === 1 ? rows : [...prev, ...rows]));
+        else setProducts(rows);
       } catch (e) {
         setError(e instanceof Error ? e : new Error('Failed to load products'));
         if (!append) setProducts((prev) => prev.length ? prev : []);

@@ -5,7 +5,12 @@ import { Search, X } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { GoldCard } from '@/components/ui/gold-card';
-import type { StockFilters, SortField, SortOrder } from '@/hooks/useProducts';
+import {
+  defaultStockFilters,
+  type StockFilters,
+  type SortField,
+  type SortOrder,
+} from '@/hooks/useProducts';
 import { Database } from '@/types/database.types';
 
 type BrandRow = Database['public']['Tables']['brands']['Row'];
@@ -101,15 +106,7 @@ export function FilterPanel({
 
   const clearFilters = () => {
     setSearchInput('');
-    onFiltersChange({
-      search: '',
-      brand: 'all',
-      model: 'all',
-      color: 'all',
-      status: 'all',
-      type: 'all',
-      deviceType: 'all',
-    });
+    onFiltersChange({ ...defaultStockFilters });
   };
 
   const hasFilters =
@@ -117,7 +114,7 @@ export function FilterPanel({
     filters.brand !== 'all' ||
     filters.model !== 'all' ||
     filters.color !== 'all' ||
-    filters.status !== 'all' ||
+    filters.status !== defaultStockFilters.status ||
     filters.type !== 'all' ||
     filters.deviceType !== 'all';
 
@@ -197,8 +194,8 @@ export function FilterPanel({
                 <SelectValue placeholder="ทุกสถานะ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="in_stock">พร้อมขาย</SelectItem>
+                <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="reserved">จอง</SelectItem>
                 <SelectItem value="sold">ขายแล้ว</SelectItem>
                 <SelectItem value="service">ส่งซ่อม</SelectItem>

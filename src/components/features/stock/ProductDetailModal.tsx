@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, ShoppingCart, CheckCircle, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { hasActiveSaleRecord } from '@/lib/product-sale-reset';
 import { Database } from '@/types/database.types';
 import {
     AlertDialog,
@@ -282,7 +283,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                                 </p>
                             </div>
                         )}
-                        {product.sold_at && (
+                        {hasActiveSaleRecord(product.status) && product.sold_at && (
                             <div className="bg-card/30 rounded-lg p-3">
                                 <p className="text-xs text-muted-foreground">วันที่ขาย</p>
                                 <p className="font-medium text-sm mt-1">
@@ -363,7 +364,7 @@ export function ProductDetailModal({ product, open, onClose, onDeleted, onEdit, 
                 )}
 
                 {/* Transaction Info Section */}
-                {product.sold_to && (
+                {hasActiveSaleRecord(product.status) && product.sold_to && (
                     <div className="space-y-3 pb-4 border-b border-gold/10">
                         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                             ข้อมูลการขาย

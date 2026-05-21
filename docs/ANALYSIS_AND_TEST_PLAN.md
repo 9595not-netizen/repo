@@ -216,11 +216,11 @@
 
 ### 5.1 จุดที่ควรแก้/เสริมในอนาคต
 1. ~~**Auth**: ตรวจสอบ user status = inactive ก่อน login~~ — ทำแล้ว
-2. **Sell**: พิจารณา optimistic lock หรือ version check เมื่อขายสินค้า
+2. ~~**Sell**: RPC `complete_single_sale` / `complete_cart_sale` แบบ atomic~~ — ทำแล้ว (migration 10–11)
 3. ~~**Reports**: Limit ช่วงวันที่หรือแจ้งเตือนเมื่อ query ช้า~~ — ทำแล้ว (MAX_REPORT_DAYS 365 วัน, แสดง toast เตือนเมื่อเกิน)
 4. ~~**E2E**: เพิ่ม Playwright tests สำหรับ critical path~~ — มีเบื้องต้น (Login, Stock redirect)
 5. **Error tracking**: เชื่อม Sentry หรือบริการคล้ายกันสำหรับ production
-6. **PaymentModal (Cart)**: ปัจจุบันไม่ใช้ใน main Sell flow — ถ้าไม่ใช้ควรซ่อนหรือลบออก
+6. ~~**PaymentModal (Cart)**~~ — ลบแล้ว (ใช้ SellForm ขายหลายรายการแทน)
 
 ### 5.2 สถานะ Unit Tests
 | ไฟล์ | สถานะ | หมายเหตุ |
@@ -228,7 +228,7 @@
 | error-handler.test.ts | ✓ | ครบ |
 | ProductForm.test.ts | ✓ | schema |
 | SellForm.test.ts | ✓ | schema |
-| PaymentModal.test.tsx | ⚠ | path resolve อาจ fail ใน env บางตัว |
+| completeSale.test.ts | ✓ | soldAtToIso, isRpcMissingError |
 | dateRangeUtils.test.ts | ✓ | getDateRange, toLocalDateString |
 | reportFilterUtils.test.ts | ✓ | filterCashSales, computeCashSalesSummary |
 | productDuplicateUtils.test.ts | ✓ | hasDuplicateShopCode, hasDuplicateImei |
@@ -240,14 +240,14 @@
 ### 6.1 ความเสี่ยงสูง
 | รายการ | คำอธิบาย | แนวทางลด |
 |--------|----------|----------|
-| ขายสินค้าซ้ำ | สองคนขายสินค้าเดียวกันพร้อมกัน | พึ่ง `.eq('status','in_stock')` และ error handling |
+| ขายสินค้าซ้ำ | สองคนขายสินค้าเดียวกันพร้อมกัน | ✓ RPC atomic + fallback `.eq('status','in_stock')` |
 | RLS ไม่ได้ตั้ง | ถ้า Supabase RLS ปิด → ผู้ใช้เห็นข้อมูลกันหมด | ตรวจสอบ RLS policies ใน Supabase |
 | Session หมดอายุ | ผู้ใช้ทำงานค้างแล้ว session หมด | ✓ AuthContext onAuthStateChange + ProtectedRoute redirect |
 
 ### 6.2 ความเสี่ยงปานกลาง
 | รายการ | คำอธิบาย |
 |--------|----------|
-| PaymentModal.test | path `@/components/ui/dialog` อาจ resolve ไม่ได้ใน env บางตัว |
+| Bundle ใหญ่ (scanner) | html5-qrcode ~340KB | ✓ LazyIMEIScanner โหลดเมื่อเปิดสแกน |
 | แก้ไขสินค้าทับกัน | ไม่มี optimistic lock — ผู้ใช้สองคนแก้ไขพร้อมกันจะทับกัน |
 | ~~FK constraint~~ | ✓ getErrorMessage 23503 แสดงข้อความไทยว่า "มีสินค้าใช้งานอยู่ กรุณาลบหรือแก้ไขสินค้าก่อน" |
 

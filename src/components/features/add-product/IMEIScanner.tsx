@@ -4,14 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Camera, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { parseScannedImeiSerial } from './imeiValidation';
 
 interface IMEIScannerProps {
   open: boolean;
   onClose: () => void;
   onScan: (imei: string) => void;
 }
-
-const IMEI_REGEX = /^\d{15}$/;
 
 /**
  * สแกน QR/บาร์โค้ด IMEI
@@ -104,24 +103,14 @@ export function IMEIScanner({ open, onClose, onScan }: IMEIScannerProps) {
       };
 
       const onSuccess = (decodedText: string) => {
-        const trimmed = decodedText.trim().replace(/\D/g, '');
-        if (IMEI_REGEX.test(trimmed)) {
+        const parsed = parseScannedImeiSerial(decodedText);
+        if (parsed) {
           html5QrCode.stop().then(() => {
             qrRef.current = null;
             setScanning(false);
-            onScan(trimmed);
+            onScan(parsed);
             onClose();
           });
-        } else if (trimmed.length >= 15) {
-          const imei = trimmed.slice(0, 15);
-          if (IMEI_REGEX.test(imei)) {
-            html5QrCode.stop().then(() => {
-              qrRef.current = null;
-              setScanning(false);
-              onScan(imei);
-              onClose();
-            });
-          }
         }
       };
 
@@ -205,12 +194,12 @@ export function IMEIScanner({ open, onClose, onScan }: IMEIScannerProps) {
               <p className={`${isMobile ? 'text-white text-center mb-6' : 'text-sm text-muted-foreground'}`}>
                 {isMobile
                   ? 'กดปุ่มด้านล่างเพื่อเปิดกล้องหลังและสแกน IMEI หรือ QR Code'
-                  : 'ใช้กล้องสแกนบาร์โค้ดหรือ QR ที่มี IMEI 15 หลัก'}
+                  : 'ใช้กล้องสแกนบาร์โค้ดหรือ QR (IMEI / Serial Number)'}
               </p>
               {error && (
                 <div className={`${isMobile ? 'text-red-400' : 'text-sm text-destructive'} rounded-lg bg-destructive/10 p-3 mb-4 space-y-1`}>
                   <p className="font-medium whitespace-pre-line">{error}</p>
-                  <p className="text-xs opacity-90">หรือปิดหน้าต่างนี้แล้วพิมพ์ IMEI 15 หลักด้วยมือที่ช่องกรอกด้านล่าง</p>
+                  <p className="text-xs opacity-90">หรือปิดหน้าต่างนี้แล้วพิมพ์ IMEI / Serial ด้วยมือที่ช่องกรอกด้านล่าง</p>
                 </div>
               )}
               <Button onClick={startScan} className={`${isMobile ? 'w-full h-14 text-lg' : 'w-full'}`} type="button">

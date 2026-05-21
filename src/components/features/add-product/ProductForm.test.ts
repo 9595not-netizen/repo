@@ -26,10 +26,26 @@ describe('productSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects invalid IMEI', () => {
+  it('accepts alphanumeric serial (e.g. iPad)', () => {
     const result = productSchema.safeParse({
       ...baseValid,
-      imei: '12345',
+      imei: 'F9FCH3ABC12',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects IMEI/serial with invalid characters', () => {
+    const result = productSchema.safeParse({
+      ...baseValid,
+      imei: 'ABC-123',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty IMEI/serial', () => {
+    const result = productSchema.safeParse({
+      ...baseValid,
+      imei: '   ',
     });
     expect(result.success).toBe(false);
   });

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { GoldCard } from '@/components/ui/gold-card';
 import { CheckCircle2, Printer, ShoppingCart } from 'lucide-react';
 import { Database } from '@/types/database.types';
-import { openReceiptPrintWindow } from '@/lib/receipt-print';
+import { openReceiptPrintWindow, triggerReceiptPrint } from '@/lib/receipt-print';
 import { getProductDisplayImage } from '@/lib/utils';
 
 type ProductDetail = Database['public']['Views']['product_details']['Row'];
@@ -28,19 +28,7 @@ export function SaleSuccessScreen({ data, onContinue }: SaleSuccessScreenProps) 
     const displayImage = getProductDisplayImage(product);
 
     const handlePrint = () => {
-        const printWindow = openReceiptPrintWindow(data);
-        if (!printWindow) {
-            return; // PRINT_FAIL - ไม่สามารถเปิดหน้าต่างได้ (ใช้ปุ่มเดิม RETRY ได้)
-        }
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.onafterprint = () => printWindow.close();
-            // fallback: ปิดหลังจากพิมพ์ (บางเบราว์เซอร์ไม่มี onafterprint)
-            setTimeout(() => {
-                if (!printWindow.closed) printWindow.close();
-            }, 500);
-        }, 250);
+        triggerReceiptPrint(openReceiptPrintWindow(data));
     };
 
     return (

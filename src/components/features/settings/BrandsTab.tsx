@@ -11,6 +11,8 @@ import { supabaseHelpers } from '@/lib/supabase-helpers';
 import { Edit2, Trash2, Plus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-handler';
+import { useAuth } from '@/contexts/AuthContext';
+import { SettingsStaffNotice } from './SettingsStaffNotice';
 
 interface Brand {
     id: string;
@@ -20,6 +22,7 @@ interface Brand {
 
 export function BrandsTab() {
     const { toast } = useToast();
+    const { isAdmin } = useAuth();
     const [brands, setBrands] = useState<Brand[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -131,16 +134,20 @@ export function BrandsTab() {
         <>
             <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-3">
-                    <Button 
-                        onClick={() => { 
-                            setEditingId(null); 
-                            setFormData({ name: '', status: 'active' }); 
-                            setShowModal(true); 
-                        }} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                    >
-                        <Plus className="h-4 w-4 mr-2" /> เพิ่มยี่ห้อ
-                    </Button>
+                    {isAdmin ? (
+                        <Button
+                            onClick={() => {
+                                setEditingId(null);
+                                setFormData({ name: '', status: 'active' });
+                                setShowModal(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                        >
+                            <Plus className="h-4 w-4 mr-2" /> เพิ่มยี่ห้อ
+                        </Button>
+                    ) : (
+                        <SettingsStaffNotice />
+                    )}
                 </div>
 
                 <GoldCard className="overflow-hidden bg-amber-50/30 dark:bg-slate-900/50 border border-gold">
@@ -150,19 +157,19 @@ export function BrandsTab() {
                                 <tr>
                                     <th className="p-4 text-left">ชื่อยี่ห้อ</th>
                                     <th className="p-4 text-left">สถานะ</th>
-                                    <th className="p-4 text-center">จัดการ</th>
+                                    {isAdmin && <th className="p-4 text-center">จัดการ</th>}
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={3} className="p-8 text-center text-muted-foreground">
+                                        <td colSpan={isAdmin ? 3 : 2} className="p-8 text-center text-muted-foreground">
                                             <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                                         </td>
                                     </tr>
                                 ) : activeBrands.length === 0 ? (
                                     <tr>
-                                        <td colSpan={3} className="p-8 text-center text-muted-foreground">ไม่มีข้อมูล</td>
+                                        <td colSpan={isAdmin ? 3 : 2} className="p-8 text-center text-muted-foreground">ไม่มีข้อมูล</td>
                                     </tr>
                                 ) : (
                                     activeBrands.map((brand) => (
@@ -177,27 +184,29 @@ export function BrandsTab() {
                                                     {brand.status === 'active' ? 'ใช้งาน' : 'ปิดใช้งาน'}
                                                 </span>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm" 
-                                                        onClick={() => openEditModal(brand)}
-                                                        className="rounded-lg border-gray-300"
-                                                    >
-                                                        <Edit2 className="h-4 w-4 text-gray-600" />
-                                                    </Button>
-                                                    <Button 
-                                                        variant="destructive" 
-                                                        size="sm" 
-                                                        onClick={() => handleDeleteClick(brand.id)}
-                                                        disabled={brand.status === 'inactive'}
-                                                        className="rounded-lg"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </td>
+                                            {isAdmin && (
+                                                <td className="p-4">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => openEditModal(brand)}
+                                                            className="rounded-lg border-gray-300"
+                                                        >
+                                                            <Edit2 className="h-4 w-4 text-gray-600" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => handleDeleteClick(brand.id)}
+                                                            disabled={brand.status === 'inactive'}
+                                                            className="rounded-lg"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 )}

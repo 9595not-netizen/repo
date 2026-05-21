@@ -15,6 +15,11 @@ test.describe('Login', () => {
     await expect(page.getByText(/username.*3|อย่างน้อย 3/i)).toBeVisible({ timeout: 5000 });
   });
 
+  test('should show remember me checkbox', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByLabel(/จดจำ/i)).toBeVisible();
+  });
+
   test('should show validation error for short password', async ({ page }) => {
     await page.goto('/login');
     await page.getByPlaceholder(/username|ชื่อผู้ใช้/i).fill('user123');

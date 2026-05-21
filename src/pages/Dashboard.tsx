@@ -1,7 +1,17 @@
+import { lazy, Suspense } from 'react';
 import { SummaryCards } from '@/components/features/dashboard/SummaryCards';
-import { DashboardCharts } from '@/components/features/dashboard/DashboardCharts';
 import { QuickActions } from '@/components/features/dashboard/QuickActions';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const DashboardCharts = lazy(() =>
+  import('@/components/features/dashboard/DashboardCharts').then((m) => ({
+    default: m.DashboardCharts,
+  }))
+);
+
+function ChartsSkeleton() {
+  return <Skeleton className="min-h-[320px] w-full rounded-2xl" />;
+}
 import { useRealtimeStats } from '@/hooks/useRealtimeStats';
 import { PageHeader } from '@/components/layout/PageHeader';
 
@@ -36,9 +46,11 @@ export default function Dashboard() {
           <QuickActions />
         </section>
 
-        {/* Charts */}
+        {/* Charts — lazy load recharts */}
         <section>
-          <DashboardCharts />
+          <Suspense fallback={<ChartsSkeleton />}>
+            <DashboardCharts />
+          </Suspense>
         </section>
       </div>
     </div>

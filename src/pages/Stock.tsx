@@ -187,8 +187,8 @@ export default function StockPage() {
           onValueChange={(v) => setFilters({ ...filters, status: v })}
         >
           <TabsList className="bg-muted/50 border border-gold/20">
-            <TabsTrigger value="all">ทั้งหมด</TabsTrigger>
             <TabsTrigger value="in_stock">พร้อมขาย</TabsTrigger>
+            <TabsTrigger value="all">ทั้งหมด</TabsTrigger>
             <TabsTrigger value="reserved">จอง</TabsTrigger>
             <TabsTrigger value="sold">ขายแล้ว</TabsTrigger>
             <TabsTrigger value="service">ส่งซ่อม</TabsTrigger>
@@ -300,8 +300,8 @@ export default function StockPage() {
       ) : (
         <div className="text-center py-20 text-muted-foreground bg-card/30 rounded-xl border border-dashed border-border">
           <p>
-            {filters.status === 'all' && !filters.search && filters.brand === 'all' && filters.model === 'all'
-              ? 'ยังไม่มีสินค้าในคลัง คลิก "เพิ่มสินค้า" เพื่อเริ่มต้น'
+            {filters.status === 'in_stock' && !filters.search && filters.brand === 'all' && filters.model === 'all'
+              ? 'ยังไม่มีสินค้าพร้อมขาย คลิก "เพิ่มสินค้า" เพื่อเริ่มต้น'
               : 'ไม่พบสินค้าตามเงื่อนไขที่ค้นหา'}
           </p>
         </div>

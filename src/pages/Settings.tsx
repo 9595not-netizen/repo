@@ -140,7 +140,7 @@ export default function Settings() {
 
             {/* Copyright Footer */}
             <div className="flex items-center justify-center mt-8 mb-4">
-                <p className="text-xs text-muted-foreground">© 2025 พัฒนาโดย น๊อต"ตัวผู้"</p>
+                <p className="text-xs text-muted-foreground">© 2026 พัฒนาโดย น๊อต"ตัวผู้"</p>
             </div>
         </div>
     );

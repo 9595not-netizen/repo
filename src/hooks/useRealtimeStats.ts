@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useId } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export interface TopModelRow {
@@ -31,6 +31,7 @@ const initialStats: DashboardStats = {
  * Subscribes to products table for realtime updates.
  */
 export function useRealtimeStats() {
+  const channelId = useId();
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -73,7 +74,7 @@ export function useRealtimeStats() {
 
     let debounceTimer: ReturnType<typeof setTimeout>;
     const channel = supabase
-      .channel('dashboard-realtime-stats')
+      .channel(`dashboard-realtime-stats${channelId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(fetchStats, 400);
@@ -82,9 +83,9 @@ export function useRealtimeStats() {
 
     return () => {
       clearTimeout(debounceTimer);
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [fetchStats]);
+  }, [fetchStats, channelId]);
 
   return { stats, loading, error, refetch: fetchStats };
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
 export interface LowStockItem {
@@ -15,9 +16,57 @@ export interface LowStockItem {
 
 const LOW_STOCK_THRESHOLD = 2;
 const ALERT_ENABLED_KEY = 'low_stock_alert_enabled';
-const ALERT_ITEMS_KEY = 'low_stock_alert_items'; // เก็บรายการที่เปิดแจ้งเตือน
+const ALERT_ITEMS_KEY = 'low_stock_alert_items';
+const CHANNEL_NAME = 'low-stock-alerts-v2';
+const POLL_INTERVAL_MS = 60_000;
 
-// สร้าง key สำหรับแต่ละรุ่น
+let sharedChannel: RealtimeChannel | null = null;
+const listeners = new Set<() => void>();
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function notifyListeners() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    listeners.forEach((fn) => fn());
+  }, 400);
+}
+
+function ensureLowStockChannel() {
+  if (sharedChannel) return;
+
+  try {
+    sharedChannel = supabase
+      .channel(CHANNEL_NAME)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        notifyListeners();
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn('Low stock realtime unavailable:', e);
+    sharedChannel = null;
+  }
+}
+
+function addLowStockListener(onUpdate: () => void): () => void {
+  listeners.add(onUpdate);
+  ensureLowStockChannel();
+
+  return () => {
+    listeners.delete(onUpdate);
+    if (listeners.size === 0) {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
+      if (sharedChannel) {
+        supabase.removeChannel(sharedChannel);
+        sharedChannel = null;
+      }
+    }
+  };
+}
+
 function getItemKey(item: LowStockItem): string {
   return `${item.model_variant_id}-${item.color_name}-${item.type}`;
 }
@@ -39,7 +88,7 @@ export function useLowStockAlert() {
     try {
       setError(null);
       const { data, error: err } = await supabase.rpc('get_low_stock_alerts', {
-        threshold_count: LOW_STOCK_THRESHOLD
+        threshold_count: LOW_STOCK_THRESHOLD,
       });
 
       if (err) throw err;
@@ -55,16 +104,12 @@ export function useLowStockAlert() {
 
   useEffect(() => {
     fetchLowStock();
-
-    const channel = supabase
-      .channel('low-stock-alerts')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-        fetchLowStock();
-      })
-      .subscribe();
+    const removeListener = addLowStockListener(fetchLowStock);
+    const pollId = setInterval(fetchLowStock, POLL_INTERVAL_MS);
 
     return () => {
-      channel.unsubscribe();
+      clearInterval(pollId);
+      removeListener();
     };
   }, [fetchLowStock]);
 
@@ -73,28 +118,33 @@ export function useLowStockAlert() {
     localStorage.setItem(ALERT_ENABLED_KEY, enabled.toString());
   }, []);
 
-  const toggleItemAlert = useCallback((item: LowStockItem, enabled: boolean) => {
-    const key = getItemKey(item);
-    const newEnabledItems = new Set(enabledItems);
-    
-    if (enabled) {
-      newEnabledItems.add(key);
-    } else {
-      newEnabledItems.delete(key);
-    }
-    
-    setEnabledItems(newEnabledItems);
-    localStorage.setItem(ALERT_ITEMS_KEY, JSON.stringify(Array.from(newEnabledItems)));
-  }, [enabledItems]);
+  const toggleItemAlert = useCallback(
+    (item: LowStockItem, enabled: boolean) => {
+      const key = getItemKey(item);
+      const newEnabledItems = new Set(enabledItems);
 
-  const isItemEnabled = useCallback((item: LowStockItem): boolean => {
-    if (!alertEnabled) return false;
-    const key = getItemKey(item);
-    return enabledItems.has(key);
-  }, [alertEnabled, enabledItems]);
+      if (enabled) {
+        newEnabledItems.add(key);
+      } else {
+        newEnabledItems.delete(key);
+      }
 
-  // คำนวณจำนวนที่แจ้งเตือนจริง (เฉพาะที่เปิด)
-  const activeAlerts = lowStockItems.filter(item => isItemEnabled(item));
+      setEnabledItems(newEnabledItems);
+      localStorage.setItem(ALERT_ITEMS_KEY, JSON.stringify(Array.from(newEnabledItems)));
+    },
+    [enabledItems]
+  );
+
+  const isItemEnabled = useCallback(
+    (item: LowStockItem): boolean => {
+      if (!alertEnabled) return false;
+      const key = getItemKey(item);
+      return enabledItems.has(key);
+    },
+    [alertEnabled, enabledItems]
+  );
+
+  const activeAlerts = lowStockItems.filter((item) => isItemEnabled(item));
 
   return {
     lowStockItems,

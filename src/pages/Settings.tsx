@@ -123,7 +123,7 @@ export default function Settings() {
                         <DeviceTypesTab />
                     </TabsContent>
 
-                    <TabsContent value="low-stock" className="mt-6" forceMount>
+                    <TabsContent value="low-stock" className="mt-6">
                         <LowStockAlertsTab />
                     </TabsContent>
 

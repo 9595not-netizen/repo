@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useId } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
 export interface TopModelRow {
@@ -23,15 +24,60 @@ const initialStats: DashboardStats = {
   topModels: [],
 };
 
+const CHANNEL_NAME = 'dashboard-realtime-stats-v2';
+const POLL_INTERVAL_MS = 60_000;
+
+let sharedChannel: RealtimeChannel | null = null;
+let subscriberCount = 0;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let activeFetch: (() => void) | null = null;
+
+function scheduleRefetch(fetchStats: () => void) {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    fetchStats();
+  }, 400);
+}
+
+function subscribeDashboardRealtime(fetchStats: () => void) {
+  activeFetch = fetchStats;
+
+  if (sharedChannel) return;
+
+  try {
+    sharedChannel = supabase
+      .channel(CHANNEL_NAME)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        if (activeFetch) scheduleRefetch(activeFetch);
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn('Dashboard realtime unavailable:', e);
+    sharedChannel = null;
+  }
+}
+
+function unsubscribeDashboardRealtime() {
+  subscriberCount = Math.max(0, subscriberCount - 1);
+  if (subscriberCount > 0) return;
+
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  activeFetch = null;
+
+  if (sharedChannel) {
+    supabase.removeChannel(sharedChannel);
+    sharedChannel = null;
+  }
+}
+
 /**
- * Phase 4: Realtime dashboard stats.
- * - สต๊อกทั้งหมด (products WHERE status='in_stock')
- * - ยอดขายวันนี้ / กำไรวันนี้ (get_today_sales)
- * - รุ่นขายดี TOP 5 (get_top_selling_models)
- * Subscribes to products table for realtime updates.
+ * Phase 4: Realtime dashboard stats (singleton channel — ป้องกัน subscribe ซ้ำ)
  */
 export function useRealtimeStats() {
-  const channelId = useId();
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -70,22 +116,17 @@ export function useRealtimeStats() {
   }, []);
 
   useEffect(() => {
+    subscriberCount++;
     fetchStats();
+    subscribeDashboardRealtime(fetchStats);
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
-    const channel = supabase
-      .channel(`dashboard-realtime-stats${channelId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(fetchStats, 400);
-      })
-      .subscribe();
+    const pollId = setInterval(fetchStats, POLL_INTERVAL_MS);
 
     return () => {
-      clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
+      clearInterval(pollId);
+      unsubscribeDashboardRealtime();
     };
-  }, [fetchStats, channelId]);
+  }, [fetchStats]);
 
   return { stats, loading, error, refetch: fetchStats };
 }
